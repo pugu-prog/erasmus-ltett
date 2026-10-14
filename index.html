@@ -159,6 +159,12 @@
   .tl-sub{font-size:.7rem;color:var(--muted);margin-top:8px;height:16px;white-space:nowrap}
   .tl-date{background:#eef3f8;border-radius:14px;padding:6px 8px;font-size:.78rem;font-weight:800;text-align:center;margin-top:4px;min-width:84px;color:var(--ink);font-variant-numeric:tabular-nums}
   .tl-col.frist .tl-date{background:#fde4e1;color:#a2281b}
+  .mapgrid{display:grid;gap:24px 36px;align-items:start}
+  @media(min-width:820px){.mapgrid{grid-template-columns:minmax(260px,420px) 1fr}}
+  .maplist{min-width:0}
+  .ptmap{margin:0}
+  .ptmap svg{display:block;width:100%;height:auto;max-width:440px}
+  .ptmap figcaption{font-size:.84rem;color:var(--muted);margin-top:6px}
   .login{margin-top:28px}
   .login summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--cyan-ink)}
   footer{color:var(--muted);font-size:.85rem}
@@ -341,9 +347,20 @@
 </section>
 
 <section id="betriebe">
-  <div class="wrap">
+  <div class="wrap wide">
     <h2>Unsere Partnerbetriebe</h2>
-    <div class="scroll">
+    <div class="mapgrid">
+    <figure class="ptmap">
+      <svg viewBox="0 0 520 700" role="img" aria-label="Karte von Portugal mit den Standorten der Partnerbetriebe: Viana do Castelo, Amarante, Vale de Cambra, Ferreira-a-Nova, Rio Maior und Raum Lissabon">
+        <style>.pc{font:800 17px 'Nunito Sans',Arial,sans-serif;fill:#103060;paint-order:stroke;stroke:#fff;stroke-width:4px}.ps{font:600 13px 'Nunito Sans',Arial,sans-serif;fill:#3d4b5c;paint-order:stroke;stroke:#fff;stroke-width:4px}.ref{font:600 13px 'Nunito Sans',Arial,sans-serif;fill:#7d8a97}.sea{font:italic 600 15px 'Nunito Sans',Arial,sans-serif;fill:#9fb3c8}</style>
+        <path d="M73,44 L76,68 L83,108 L90,134 L95,157 L85,204 L80,232 L70,264 L62,307 L52,339 L20,371 L18,421 L10,446 L18,458 L40,456 L55,449 L65,459 L36,464 L38,494 L70,484 L75,493 L81,534 L72,554 L80,584 L80,622 L68,654 L60,675 L93,664 L106,662 L136,667 L168,677 L196,662 L219,654 L216,610 L236,554 L268,521 L251,496 L258,437 L236,359 L208,332 L259,330 L268,294 L275,252 L278,207 L281,173 L268,154 L316,119 L342,82 L306,34 L263,31 L221,47 L171,44 L141,8 L98,21 Z" fill="#e6eef6" stroke="#9fb3c8" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="99" cy="138" r="4" fill="#7d8a97"/><text x="92" y="142" text-anchor="end" class="ref">Porto</text>
+        <text x="8" y="610" class="sea">Atlantik</text><text x="300" y="560" class="sea" letter-spacing="3">SPANIEN</text>
+        <circle cx="77" cy="68" r="13" fill="#7d8a97" opacity=".22"/><circle cx="77" cy="68" r="7" fill="#7d8a97" stroke="#fff" stroke-width="2"/><text x="93" y="66" class="pc">Viana do Castelo</text><text x="93" y="83" class="ps">ENERCON · früher</text><circle cx="153" cy="122" r="13" fill="#f09000" opacity=".22"/><circle cx="153" cy="122" r="7" fill="#f09000" stroke="#fff" stroke-width="2"/><text x="169" y="120" class="pc">Amarante</text><text x="169" y="137" class="ps">ENERNORTE · aktuell</text><circle cx="120" cy="177" r="13" fill="#f09000" opacity=".22"/><circle cx="120" cy="177" r="7" fill="#f09000" stroke="#fff" stroke-width="2"/><text x="136" y="175" class="pc">Vale de Cambra</text><text x="136" y="192" class="ps">4 Betriebe · 3 aktuell</text><circle cx="83" cy="271" r="13" fill="#f09000" opacity=".22"/><circle cx="83" cy="271" r="7" fill="#f09000" stroke="#fff" stroke-width="2"/><text x="99" y="269" class="pc">Ferreira-a-Nova</text><text x="99" y="286" class="ps">HELENOS · aktuell</text><circle cx="66" cy="373" r="13" fill="#7d8a97" opacity=".22"/><circle cx="66" cy="373" r="7" fill="#7d8a97" stroke="#fff" stroke-width="2"/><text x="82" y="371" class="pc">Rio Maior</text><text x="82" y="388" class="ps">SALINAS · früher</text><circle cx="55" cy="458" r="13" fill="#7d8a97" opacity=".22"/><circle cx="55" cy="458" r="7" fill="#7d8a97" stroke="#fff" stroke-width="2"/><text x="71" y="456" class="pc">Raum Lissabon</text><text x="71" y="473" class="ps">3 Betriebe · früher</text>
+      </svg>
+      <figcaption><span class="k" style="background:#f09000"></span> aktuell 2026/27 &nbsp; <span class="k" style="background:#7d8a97"></span> frühere Betriebe</figcaption>
+    </figure>
+    <div class="maplist"><div class="scroll">
       <table>
         <thead><tr><th>Betrieb</th><th>Ort</th><th>Bereich</th><th>Status</th></tr></thead>
         <tbody>
@@ -360,6 +377,7 @@
           <tr><td><b>SALINAS Mediação</b></td><td>Rio Maior</td><td>Vermittlung (Büro)</td><td>früher</td></tr>
         </tbody>
       </table>
+    </div></div>
     </div>
     <p class="small" style="margin-top:12px">Die Zuteilung zu den Betrieben macht das Projektteam, nach euren Profilen und den freien Plätzen.</p>
   </div>
