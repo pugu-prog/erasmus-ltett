@@ -131,6 +131,34 @@
   .dl div{display:flex;flex-direction:column;min-width:0}
   .dl b{color:var(--ink)}
   .dl span{font-size:.86rem;color:var(--muted)}
+  .wrap.wide{max-width:1180px}
+  .tl-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px}
+  .tl-tab{border:1px solid var(--line);background:#fff;color:var(--muted);font-weight:800;border-radius:999px;padding:7px 16px}
+  .tl-tab.active{background:var(--ink);border-color:var(--ink);color:#fff}
+  .tl-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.82rem;color:var(--muted);margin-bottom:16px}
+  .tl-legend span{display:inline-flex;align-items:center;gap:6px}
+  .k{display:inline-block;width:12px;height:12px;border-radius:50%}
+  .k.abgabe,.tl-bubble.abgabe{background:#a9d92d}
+  .k.sign,.tl-bubble.sign{background:#d9d3f5}
+  .k.schule,.tl-bubble.schule{background:#f0ec3a}
+  .k.praxis,.tl-bubble.praxis{background:#1ecdc4}
+  .k.ferien,.tl-bubble.ferien{background:#b3d9e8}
+  .k.frist{background:#e8483a}
+  .tl-scroll{overflow-x:auto;padding-bottom:14px;max-width:100%}
+  .tl-track{display:flex;align-items:stretch;min-width:max-content;padding:0 4px}
+  .tl-col{width:150px;flex:0 0 150px;display:flex;flex-direction:column;align-items:center}
+  .tl-col.past{opacity:.45}
+  .tl-who{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);height:16px;margin-bottom:4px}
+  .tl-bubble{border-radius:18px;padding:8px;width:92%;height:84px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.8rem;font-weight:800;line-height:1.2;color:#1c2621}
+  .tl-bubble.praxis{color:#06332f}
+  .tl-bubble.ferien{color:#1c4a5e}
+  .tl-conn{width:0;height:22px;border-left:1px dashed #a9b6c2}
+  .tl-axis{position:relative;width:100%;height:3px;background:#1c2621}
+  .tl-dot{position:absolute;top:50%;left:50%;width:15px;height:15px;border-radius:50%;transform:translate(-50%,-50%);background:#1c2621}
+  .tl-dot.frist{background:#e8483a;width:17px;height:17px}
+  .tl-sub{font-size:.7rem;color:var(--muted);margin-top:8px;height:16px;white-space:nowrap}
+  .tl-date{background:#eef3f8;border-radius:14px;padding:6px 8px;font-size:.78rem;font-weight:800;text-align:center;margin-top:4px;min-width:84px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .tl-col.frist .tl-date{background:#fde4e1;color:#a2281b}
   .login{margin-top:28px}
   .login summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--cyan-ink)}
   footer{color:var(--muted);font-size:.85rem}
@@ -216,20 +244,24 @@
 </section>
 
 <section id="termine">
-  <div class="wrap">
-    <h2>Termine bis Ende November</h2>
-    <p>Bis zum <b>27. November 2026</b> muss alles für die Vorbereitung abgegeben und unterschrieben sein. Halte die Termine ein: Erst wenn alles komplett ist, wird der Zuschuss ausgezahlt.</p>
-    <ol class="timeline">
-      <li class="key"><div class="d">Di. 20.10.<small>12 Uhr</small></div><div><b>Motivationsschreiben Erasmus LTEtt</b><div class="w">Handschriftlich, Englisch · an Guy Putz und Christoph Scholtes · Büro 008</div></div></li>
-      <li><div class="d">Fr. 23.10.</div><div><b>Auswahl wird bekannt gegeben</b><div class="w">Entscheidung: Guy Putz und Christoph Scholtes, stellvertretender Schulleiter</div></div></li>
-      <li class="key"><div class="d">Fr. 30.10.</div><div><b>Fiche Donnée Schüler</b><div class="w">Ausgefüllt per Mail an jo-anne.schreiner@ltett.lu und guy.putz@ltett.lu</div></div></li>
-      <li class="key"><div class="d">Fr. 13.11.</div><div><b>Motivationsschreiben Betrieb und CV</b><div class="w">Beide auf Englisch · in Teams in deinen persönlichen Ordner</div></div></li>
-      <li class="key"><div class="d">16.–20.11.</div><div><b>Grant Agreement unterschreiben</b><div class="w">Vertrag zwischen Schule und dir · Büro Mme Schreiner · Termin kommt per Mail</div></div></li>
-      <li class="key"><div class="d">23.–27.11.</div><div><b>Learning Agreement unterschreiben</b><div class="w">Vertrag zwischen Schule, Betrieb und dir: was du im Praktikum lernst · Büro Mme Schreiner</div></div></li>
-      <li class="key"><div class="d">Fr. 27.11.</div><div><b>1. Sprachtest gemacht</b><div class="w">Link kommt per Mail · Screenshot vom Ergebnis an Schreiner und Putz · danach ist alles komplett und Christoph Scholtes gibt die Auszahlung frei</div></div></li>
-      <li><div class="d">Termin folgt</div><div><b>Infoabend mit Eltern</b><div class="w">Geleitet von Christoph Scholtes, stellvertretender Schulleiter · Festsaal LTEtt</div></div></li>
-    </ol>
-    <p class="small" style="margin-top:14px">Während des Praktikums: jeden Freitag Arbeitsbericht und Alltagsbericht. Nach dem Praktikum: innerhalb von 2 Wochen alle Papiere, 2. Sprachtest, EU-Umfrage und Praktikumsbericht.</p>
+  <div class="wrap wide">
+    <h2>Zeitplan 2026/2027</h2>
+    <p>Bis zum <b>27. November 2026</b> muss die Vorbereitung komplett sein. Erst dann wird der Zuschuss ausgezahlt. Wähle deine Klasse:</p>
+    <div class="tl-tabs" role="tablist" aria-label="Klasse">
+      <button type="button" class="tl-tab" data-grp="DP3ET" role="tab">DP3ET</button>
+      <button type="button" class="tl-tab active" data-grp="TPSTU" role="tab">1TPSTU · 2TPSTU</button>
+      <button type="button" class="tl-tab" data-grp="3TPSTU" role="tab">3TPSTU</button>
+    </div>
+    <div class="tl-legend">
+      <span><i class="k abgabe"></i>Abgabe Schüler</span>
+      <span><i class="k sign"></i>Unterschreiben</span>
+      <span><i class="k schule"></i>Schule entscheidet / zahlt</span>
+      <span><i class="k praxis"></i>Praktikum</span>
+      <span><i class="k ferien"></i>Ferien</span>
+      <span><i class="k frist"></i>wichtige Frist</span>
+    </div>
+    <div class="tl-scroll" tabindex="0" aria-label="Zeitleiste, seitlich scrollbar"><div class="tl-track" id="tlTrack"></div></div>
+    <p class="small">Seitlich scrollen für den ganzen Zeitplan. Vergangene Termine sind blasser.</p>
   </div>
 </section>
 
@@ -502,7 +534,12 @@ function code(){ try { return sessionStorage.getItem("erasmus-code") || ""; } ca
 function markDirty(id){ if (id) dirtyNames.add(id); dirty = true; $("save").disabled = false; $("saveMsg").textContent = "Nicht gespeicherte Änderungen."; }
 function renderAll(){ renderPicker(); renderMine(); if (canWrite) renderMatrix(); }
 
-$("who").addEventListener("change", () => { try { localStorage.setItem("erasmus-who", $("who").value); } catch(e){} renderMine(); });
+$("who").addEventListener("change", () => {
+  try { localStorage.setItem("erasmus-who", $("who").value); } catch(e){}
+  renderMine();
+  const s = data.students.find(x => x.id === $("who").value);
+  if (s){ const k = (s.klasse || "").toUpperCase(); renderTimeline(k === "DP3ET" ? "DP3ET" : k === "3TPSTU" ? "3TPSTU" : "TPSTU"); }
+});
 
 $("matrix").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
@@ -596,6 +633,55 @@ document.querySelectorAll("#downloads button[data-file]").forEach(btn => btn.add
     msg.textContent = "Die Datei konnte nicht heruntergeladen werden. Frag Herrn Putz nach der Datei.";
   } finally { btn.disabled = false; }
 }));
+
+
+// ---------- Zeitleiste (wie PPREN) ----------
+const TL = [
+  {d:"2026-10-20", date:"Di. 20.10.", sub:"12 Uhr", type:"abgabe", who:"Schüler", t:"Motivationsschreiben an Putz und Scholtes", frist:true},
+  {d:"2026-10-23", date:"Fr. 23.10.", type:"schule", who:"Schule", t:"Auswahl der Teilnehmer"},
+  {d:"2026-10-30", date:"Fr. 30.10.", type:"abgabe", who:"Schüler", t:"Fiche Donnée Schüler"},
+  {d:"2026-11-13", date:"Fr. 13.11.", type:"abgabe", who:"Schüler", t:"Motivationsschreiben und CV für den Betrieb", frist:true},
+  {d:"2026-11-20", date:"16.–20.11.", type:"sign", who:"Schüler", t:"Grant Agreement unterschreiben"},
+  {d:"2026-11-27", date:"23.–27.11.", type:"sign", who:"Schüler", t:"Learning Agreement unterschreiben"},
+  {d:"2026-11-27", date:"Fr. 27.11.", type:"abgabe", who:"Schüler", t:"1. Sprachtest · alles komplett", frist:true},
+  {d:"2026-12-10", date:"Termin folgt", type:"schule", who:"Schule", t:"Infoabend mit Eltern (C. Scholtes)"},
+  {d:"2026-12-15", date:"Dezember", type:"schule", who:"Schule", t:"80 % des Zuschusses"},
+  {g:"DP3ET", d:"2027-01-11", date:"Mo. 11.01.", type:"praxis", who:"Schüler", t:"Start Praktikum"},
+  {g:"TPSTU", d:"2027-01-25", date:"Mo. 25.01.", type:"praxis", who:"Schüler", t:"Start Praktikum"},
+  {g:"DP3ET", d:"2027-01-15", date:"ab Fr. 15.01.", sub:"jeden Freitag", type:"abgabe", who:"Schüler", t:"Arbeitsbericht und Alltagsbericht"},
+  {g:"TPSTU", d:"2027-01-29", date:"ab Fr. 29.01.", sub:"jeden Freitag", type:"abgabe", who:"Schüler", t:"Arbeitsbericht und Alltagsbericht"},
+  {g:"DP3ET TPSTU", d:"2027-02-08", date:"08.–12.02.", type:"ferien", who:"", t:"Fastnachtsferien · im Betrieb arbeiten"},
+  {g:"DP3ET", d:"2027-02-12", date:"Fr. 12.02.", type:"praxis", who:"Schüler", t:"Ende Praktikum · Papiere unterschreiben lassen"},
+  {g:"TPSTU", d:"2027-02-19", date:"Fr. 19.02.", type:"praxis", who:"Schüler", t:"Ende Praktikum · Papiere unterschreiben lassen"},
+  {g:"DP3ET", d:"2027-02-26", date:"Fr. 26.02.", type:"abgabe", who:"Schüler", t:"Papiere, 2. Sprachtest, EU-Umfrage, Praktikumsbericht", frist:true},
+  {g:"TPSTU", d:"2027-03-05", date:"Fr. 05.03.", type:"abgabe", who:"Schüler", t:"Papiere, 2. Sprachtest, EU-Umfrage, Praktikumsbericht", frist:true},
+  {g:"3TPSTU", d:"2027-03-22", date:"Mo. 22.03.", type:"praxis", who:"Schüler", t:"Start Praktikum"},
+  {g:"3TPSTU", d:"2027-03-26", date:"ab Fr. 26.03.", sub:"jeden Freitag", type:"abgabe", who:"Schüler", t:"Arbeitsbericht und Alltagsbericht"},
+  {g:"3TPSTU", d:"2027-03-29", date:"29.03.–09.04.", type:"ferien", who:"", t:"Osterferien · im Betrieb arbeiten"},
+  {g:"3TPSTU", d:"2027-04-16", date:"Fr. 16.04.", type:"praxis", who:"Schüler", t:"Ende Praktikum · Papiere unterschreiben lassen"},
+  {g:"3TPSTU", d:"2027-04-30", date:"Fr. 30.04.", type:"abgabe", who:"Schüler", t:"Papiere, 2. Sprachtest, EU-Umfrage, Praktikumsbericht", frist:true},
+  {g:"DP3ET", d:"2027-03-10", date:"danach", type:"schule", who:"Schule", t:"Restliche 20 % und Europass"},
+  {g:"TPSTU", d:"2027-03-15", date:"danach", type:"schule", who:"Schule", t:"Restliche 20 % und Europass"},
+  {g:"3TPSTU", d:"2027-05-07", date:"danach", type:"schule", who:"Schule", t:"Restliche 20 % und Europass"}
+];
+function renderTimeline(grp){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const items = TL.filter(i => !i.g || i.g.split(" ").includes(grp)).sort((a,b) => a.d.localeCompare(b.d));
+  $("tlTrack").innerHTML = items.map(i => {
+    const past = new Date(i.d + "T23:59:59") < today;
+    return `<div class="tl-col${past ? " past" : ""}${i.frist ? " frist" : ""}">
+      <div class="tl-who">${esc(i.who)}</div>
+      <div class="tl-bubble ${i.type}">${esc(i.t)}</div>
+      <div class="tl-conn"></div>
+      <div class="tl-axis"><span class="tl-dot${i.frist ? " frist" : ""}"></span></div>
+      <div class="tl-sub">${esc(i.sub || "")}</div>
+      <div class="tl-date">${esc(i.date)}</div>
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".tl-tab").forEach(b => { const on = b.dataset.grp === grp; b.classList.toggle("active", on); b.setAttribute("aria-selected", on); });
+}
+document.querySelectorAll(".tl-tab").forEach(b => b.addEventListener("click", () => { renderTimeline(b.dataset.grp); try { localStorage.setItem("erasmus-grp", b.dataset.grp); } catch(e){} }));
+(function(){ let g = "TPSTU"; try { g = localStorage.getItem("erasmus-grp") || g; } catch(e){} renderTimeline(g); })();
 
 (async function start(){
   if (!API_URL){ $("mine").innerHTML = '<div class="empty">Der Stand ist noch nicht freigeschaltet. Schau bald wieder vorbei.</div>'; $("loginBox").hidden = true; return; }
