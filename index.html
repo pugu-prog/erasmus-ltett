@@ -165,6 +165,13 @@
   .ptmap{margin:0}
   .ptmap svg{display:block;width:100%;height:auto;max-width:440px}
   .ptmap figcaption{font-size:.84rem;color:var(--muted);margin-top:6px}
+  .upform{display:grid;gap:12px 18px;align-items:end;background:var(--card);border-radius:8px;padding:16px}
+  @media(min-width:640px){.upform{grid-template-columns:1fr 1fr}}
+  .upform label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:800;color:var(--ink);min-width:0}
+  .upform .wide{grid-column:1 / -1}
+  .upform input[type=file]{font:inherit;font-size:.9rem;min-width:0;max-width:100%}
+  .upform button{justify-self:start}
+  #upMsg{margin-top:10px;font-weight:700}
   .login{margin-top:28px}
   .login summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--cyan-ink)}
   footer{color:var(--muted);font-size:.85rem}
@@ -184,7 +191,7 @@
     <h1>Dein Praktikum in Portugal</h1>
     <p class="lede">Hier steht alles zum Erasmus+-Auslandspraktikum: Zeiträume, Ablauf, Anforderungen und Betriebe. Unter „Dein Stand“ siehst du, was du schon erledigt hast. Abgehakt wird von deinen Lehrern.</p>
     <nav class="toc" aria-label="Inhalt">
-      <a href="#downloads">Downloads</a><a href="#termine">Zeitplan</a><a href="#stand">Dein Stand</a><a href="#wann">Wann</a><a href="#ablauf">Ablauf</a><a href="#berichte">Wöchentliche Berichte</a><a href="#anforderungen">Anforderungen</a><a href="#betriebe">Betriebe</a><a href="#kontakt">Kontakt</a>
+      <a href="#downloads">Downloads</a><a href="#termine">Zeitplan</a><a href="#stand">Dein Stand</a><a href="#abgeben">Abgeben</a><a href="#wann">Wann</a><a href="#ablauf">Ablauf</a><a href="#berichte">Wöchentliche Berichte</a><a href="#anforderungen">Anforderungen</a><a href="#betriebe">Betriebe</a><a href="#kontakt">Kontakt</a>
     </nav>
   </div>
 </section>
@@ -250,6 +257,7 @@
       <div class="eyebrow">Lehreransicht · angemeldet mit Lehrer-Code</div>
       <h3>Alle Schüler abhaken</h3>
       <p class="small">Klicke ein Feld an: offen → in Arbeit → erledigt → offen. Danach „Speichern“, dann sehen die Schüler den neuen Stand. Gespeichert wird in der Google-Tabelle „Erasmus+ Stand 2026-27 (Lehrer)“. <button type="button" id="logout" class="del">Abmelden</button></p>
+      <p><a id="folderLink" href="#" target="_blank" rel="noopener" hidden><b>Abgaben-Ordner in Google Drive öffnen →</b></a></p>
       <div class="toolbar">
         <button class="primary" id="save" disabled>Speichern</button>
         <span class="save-msg" id="saveMsg" role="status">Keine Änderungen.</span>
@@ -268,6 +276,22 @@
         <div class="toolbar"><button type="button" id="bulkAdd">Alle hinzufügen</button><span class="save-msg" id="bulkMsg" role="status"></span></div>
       </details>
     </div>
+  </div>
+</section>
+
+<section id="abgeben">
+  <div class="wrap">
+    <h2>Dokumente abgeben</h2>
+    <p>Lade deine Dokumente hier hoch. Herr Putz und Mme Schreiner bekommen sie direkt. In deinem Stand steht der Punkt danach auf „in Arbeit“, bis er geprüft und auf „erledigt“ gesetzt ist.</p>
+    <form id="upForm" class="upform">
+      <label for="upName">Dein Name<select id="upName" required><option value="">– bitte wählen –</option></select></label>
+      <label for="upTyp">Welches Dokument?<select id="upTyp" required disabled><option value="">– erst Namen wählen –</option></select></label>
+      <label for="upCode">Schüler-Code<input type="text" id="upCode" autocomplete="off" placeholder="aus der Versammlung"></label>
+      <label for="upFile" class="wide">Datei (PDF, Word, Foto · höchstens 15 MB)<input type="file" id="upFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" required></label>
+      <button type="submit" class="primary" id="upBtn">Hochladen</button>
+    </form>
+    <p class="save-msg" id="upMsg" role="status"></p>
+    <p class="small">Das handschriftliche Motivationsschreiben an die Schule gibst du weiterhin auf Papier in Büro 008 ab.</p>
   </div>
 </section>
 
@@ -618,13 +642,14 @@ $("save").addEventListener("click", async () => {
   }
 });
 
-function showTeacher(){ canWrite = true; $("teacher").hidden = false; $("loginBox").hidden = true; renderMatrix(); }
+function showTeacher(folderUrl){ canWrite = true; $("teacher").hidden = false; $("loginBox").hidden = true; renderMatrix();
+  if (folderUrl){ $("folderLink").href = folderUrl; $("folderLink").hidden = false; } }
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   $("loginMsg").textContent = "Prüfe …";
   try {
     const res = await api({action: "check", code: $("code").value});
-    if (res.ok){ try { sessionStorage.setItem("erasmus-code", $("code").value); } catch(e){} $("loginMsg").textContent = ""; $("code").value = ""; showTeacher(); }
+    if (res.ok){ try { sessionStorage.setItem("erasmus-code", $("code").value); } catch(e){} $("loginMsg").textContent = ""; $("code").value = ""; showTeacher(res.folderUrl); }
     else $("loginMsg").textContent = "Der Code stimmt nicht.";
   } catch(err){ $("loginMsg").textContent = "Keine Verbindung zur Tabelle."; }
 });
@@ -701,13 +726,59 @@ function renderTimeline(grp){
 document.querySelectorAll(".tl-tab").forEach(b => b.addEventListener("click", () => { renderTimeline(b.dataset.grp); try { localStorage.setItem("erasmus-grp", b.dataset.grp); } catch(e){} }));
 (function(){ let g = "TPSTU"; try { g = localStorage.getItem("erasmus-grp") || g; } catch(e){} renderTimeline(g); })();
 
+
+// ---------- Dokumente abgeben ----------
+const UPLOADABLE = ["fiche","motiv_firma","cv","ols1","arbeit","alltag","papiere","ols2","bericht"];
+function upChoices(s){
+  return itemsFor(s).filter(i => UPLOADABLE.some(u => i.id === u || (/^(arbeit|alltag)\d+$/.test(i.id) && i.id.startsWith(u))))
+    .map(i => ({col: COLS[i.id], label: i.t + (st(s,i.id) === 2 ? " · erledigt" : "")}))
+    .concat([{col: "", label: "Sonstiges Dokument"}]);
+}
+function renderUpNames(){
+  const sel = $("upName"), cur = sel.value;
+  sel.innerHTML = '<option value="">– bitte wählen –</option>' + data.students.slice().sort((a,b)=>a.name.localeCompare(b.name,"de"))
+    .map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
+  if (data.students.some(s => s.id === cur)) sel.value = cur;
+  else if (data.students.some(s => s.id === $("who").value)) sel.value = $("who").value;
+  renderUpTypes();
+}
+function renderUpTypes(){
+  const s = data.students.find(x => x.id === $("upName").value), t = $("upTyp");
+  if (!s){ t.innerHTML = '<option value="">– erst Namen wählen –</option>'; t.disabled = true; return; }
+  t.disabled = false;
+  t.innerHTML = '<option value="">– bitte wählen –</option>' + upChoices(s).map(c => `<option value="${esc(c.col)}" data-label="${esc(c.label)}">${esc(c.label)}</option>`).join("");
+}
+$("upName").addEventListener("change", renderUpTypes);
+$("upForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("upMsg"), f = $("upFile").files[0], s = data.students.find(x => x.id === $("upName").value);
+  const opt = $("upTyp").selectedOptions[0];
+  if (!s || !opt || !opt.dataset.label || !f){ msg.textContent = "Bitte Name, Dokument und Datei wählen."; return; }
+  if (f.size > 15 * 1024 * 1024){ msg.textContent = "Die Datei ist größer als 15 MB. Bitte verkleinern oder als PDF speichern."; return; }
+  if (!/\.(pdf|docx?|jpe?g|png|heic)$/i.test(f.name)){ msg.textContent = "Bitte nur PDF, Word oder Foto (JPG, PNG, HEIC)."; return; }
+  $("upBtn").disabled = true; msg.textContent = "Lade hoch …";
+  try {
+    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
+    const typ = opt.value || "Sonstiges";
+    const res = await api({action: "upload", name: s.name, typ, col: opt.value, filename: f.name, mime: f.type, data: b64, scode: $("upCode").value.trim()});
+    if (res.ok){
+      msg.textContent = "Danke! „" + opt.dataset.label.replace(" · erledigt","") + "“ ist angekommen.";
+      $("upFile").value = "";
+      try { data = fromSheet(await api()); renderAll(); renderUpNames(); } catch(e){}
+    } else {
+      msg.textContent = ({scode: "Der Schüler-Code stimmt nicht.", type: "Dieser Dateityp geht nicht. Bitte PDF, Word oder Foto.", size: "Die Datei ist zu groß (höchstens 15 MB).", name: "Dein Name wurde nicht gefunden. Sprich mit Herrn Putz."})[res.error] || "Das Hochladen geht gerade nicht. Versuche es später noch einmal oder schick die Datei per Mail.";
+    }
+  } catch(err){ msg.textContent = "Keine Verbindung. Versuche es noch einmal."; }
+  finally { $("upBtn").disabled = false; }
+});
+
 (async function start(){
   if (!API_URL){ $("mine").innerHTML = '<div class="empty">Der Stand ist noch nicht freigeschaltet. Schau bald wieder vorbei.</div>'; $("loginBox").hidden = true; return; }
   try { data = fromSheet(await api()); }
   catch(e){ $("mine").innerHTML = '<div class="empty">Der Stand konnte gerade nicht geladen werden. Lade die Seite neu.</div>'; }
-  renderPicker(); renderMine();
+  renderPicker(); renderMine(); renderUpNames();
   if (code()){
-    try { const res = await api({action: "check", code: code()}); if (res.ok) showTeacher(); } catch(e){}
+    try { const res = await api({action: "check", code: code()}); if (res.ok) showTeacher(res.folderUrl); } catch(e){}
   }
 })();
 
