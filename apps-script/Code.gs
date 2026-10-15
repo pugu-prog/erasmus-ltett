@@ -11,8 +11,10 @@
  *   4. Die URL Claude geben (oder in index.html bei API_URL eintragen).
  *
  * Dokumente abgeben (Upload durch Schüler):
- *   - Optional Skripteigenschaft SCHUELER_CODE = <Code, den die Schüler in der Versammlung bekommen>.
- *     Ist sie gesetzt, geht das Hochladen nur mit diesem Code.
+ *   - Jeder Schüler hat einen eigenen Code. Die Codes stehen im Blatt „Codes“ (Name | Code) dieser Tabelle;
+ *     die Webseite liest dieses Blatt nie. Fehlende Codes werden automatisch erzeugt, sobald sich ein Lehrer
+ *     auf der Seite anmeldet oder speichert (oder hier im Editor die Funktion codesErzeugen ausführen).
+ *   - Einen Code ändern: im Blatt „Codes“ einfach überschreiben.
  *   - Die Dateien landen in Google Drive im Ordner „Erasmus+ Abgaben 2026-27“, ein Unterordner pro Schüler.
  *   - Nach einer Änderung am Skript: Bereitstellen › Bereitstellungen verwalten › Bearbeiten (Stift)
  *     › Version: Neue Version › Bereitstellen. Die URL bleibt gleich. Beim ersten Mal Drive-Zugriff erlauben.
@@ -50,7 +52,7 @@ function doPost(e) {
 
   var expected = PropertiesService.getScriptProperties().getProperty('LEHRER_CODE');
   if (!expected || String(req.code || '') !== expected) return json_({ ok: false, error: 'code' });
-  if (req.action === 'check') return json_({ ok: true, folderUrl: rootFolder_().getUrl() });
+  if (req.action === 'check') { codesErzeugen(); return json_({ ok: true, folderUrl: rootFolder_().getUrl() }); }
   if (req.action !== 'save') return json_({ ok: false, error: 'unknown_action' });
 
   var lock = LockService.getScriptLock();
@@ -90,6 +92,7 @@ function doPost(e) {
     });
 
     SpreadsheetApp.flush();
+    codesErzeugen();
     return json_({ ok: true, data: readAll_() });
   } finally {
     lock.releaseLock();
@@ -116,10 +119,6 @@ function studentFolder_(name) {
 }
 
 function upload_(req) {
-  var props = PropertiesService.getScriptProperties();
-  var scode = props.getProperty('SCHUELER_CODE');
-  if (scode && String(req.scode || '') !== scode) return json_({ ok: false, error: 'scode' });
-
   var name = String(req.name || '').trim();
   var typ = String(req.typ || '').trim();
   var col = String(req.col || '').trim();
@@ -135,6 +134,8 @@ function upload_(req) {
     if (String(values[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; }
   }
   if (row < 0) return json_({ ok: false, error: 'name' });
+  var own = codeOf_(name);
+  if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
 
   var bytes = Utilities.base64Decode(req.data);
   if (bytes.length > MAX_BYTES) return json_({ ok: false, error: 'size' });
@@ -155,4 +156,45 @@ function upload_(req) {
     } finally { lock.releaseLock(); }
   }
   return json_({ ok: true, file: file.getName() });
+}
+
+// ---------- Persönliche Schüler-Codes ----------
+var CODE_ZEICHEN = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function codesSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('Codes');
+  if (!sh) {
+    sh = ss.insertSheet('Codes', ss.getSheets().length);
+    sh.getRange(1, 1, 1, 2).setValues([['Name', 'Code']]).setFontWeight('bold');
+    sh.setColumnWidth(1, 220);
+  }
+  return sh;
+}
+
+function codeOf_(name) {
+  var v = codesSheet_().getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]).trim().toLowerCase() === String(name).trim().toLowerCase()) return String(v[i][1]).trim();
+  }
+  return '';
+}
+
+/** Legt für jeden Schüler ohne Code einen neuen 6-stelligen Code an. Bestehende Codes bleiben. */
+function codesErzeugen() {
+  var names = sheet_().getRange(2, 1, Math.max(sheet_().getLastRow() - 1, 1), 1).getValues()
+    .map(function (r) { return String(r[0]).trim(); })
+    .filter(function (n) { return n && n.charAt(0) !== '#'; });
+  var cs = codesSheet_();
+  var have = {};
+  cs.getDataRange().getValues().slice(1).forEach(function (r) { if (r[0]) have[String(r[0]).trim().toLowerCase()] = true; });
+  var neu = [];
+  names.forEach(function (n) {
+    if (have[n.toLowerCase()]) return;
+    var c = '';
+    for (var i = 0; i < 6; i++) c += CODE_ZEICHEN.charAt(Math.floor(Math.random() * CODE_ZEICHEN.length));
+    neu.push([n, c]);
+  });
+  if (neu.length) cs.getRange(cs.getLastRow() + 1, 1, neu.length, 2).setValues(neu);
+  return neu.length;
 }
