@@ -45,6 +45,21 @@ function doGet() {
 }
 
 function doPost(e) {
+  try {
+    return handlePost_(e);
+  } catch (err) {
+    return json_({ ok: false, error: 'server', message: String(err && err.message || err) });
+  }
+}
+
+/** Einmal im Editor ausführen: fragt die Erlaubnis für Google Drive ab und legt den Abgabe-Ordner an. */
+function ordnerAnlegen() {
+  var f = rootFolder_();
+  Logger.log('Abgabe-Ordner: ' + f.getUrl());
+  return f.getUrl();
+}
+
+function handlePost_(e) {
   var req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad_request' }); }
 
@@ -52,7 +67,12 @@ function doPost(e) {
 
   var expected = PropertiesService.getScriptProperties().getProperty('LEHRER_CODE');
   if (!expected || String(req.code || '') !== expected) return json_({ ok: false, error: 'code' });
-  if (req.action === 'check') { codesErzeugen(); return json_({ ok: true, folderUrl: rootFolder_().getUrl() }); }
+  if (req.action === 'check') {
+    codesErzeugen();
+    var url = null;
+    try { url = rootFolder_().getUrl(); } catch (err) { url = null; }
+    return json_({ ok: true, folderUrl: url });
+  }
   if (req.action !== 'save') return json_({ ok: false, error: 'unknown_action' });
 
   var lock = LockService.getScriptLock();
@@ -143,7 +163,9 @@ function upload_(req) {
   var ext = filename.replace(/^.*\./, '').toLowerCase();
   var stamp = Utilities.formatDate(new Date(), 'Europe/Luxembourg', 'yyyy-MM-dd HH-mm');
   var blob = Utilities.newBlob(bytes, req.mime || 'application/octet-stream', typ + ' - ' + name + ' - ' + stamp + '.' + ext);
-  var file = studentFolder_(name).createFile(blob);
+  var file;
+  try { file = studentFolder_(name).createFile(blob); }
+  catch (err) { return json_({ ok: false, error: 'drive', message: String(err && err.message || err) }); }
 
   // Im Stand als „eingegangen“ (i) markieren, wenn der Punkt noch offen ist
   var k = headers.indexOf(col);
