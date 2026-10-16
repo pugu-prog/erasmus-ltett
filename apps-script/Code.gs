@@ -64,6 +64,7 @@ function handlePost_(e) {
   try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad_request' }); }
 
   if (req.action === 'upload') return upload_(req);
+  if (req.action === 'fiche') return saveFiche_(req);
 
   var expected = PropertiesService.getScriptProperties().getProperty('LEHRER_CODE');
   if (!expected || String(req.code || '') !== expected) return json_({ ok: false, error: 'code' });
@@ -71,7 +72,9 @@ function handlePost_(e) {
     codesErzeugen();
     var url = null;
     try { url = rootFolder_().getUrl(); } catch (err) { url = null; }
-    return json_({ ok: true, folderUrl: url });
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ficheUrl = 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?format=xlsx&gid=' + ficheSheet_().getSheetId();
+    return json_({ ok: true, folderUrl: url, ficheUrl: ficheUrl });
   }
   if (req.action !== 'save') return json_({ ok: false, error: 'unknown_action' });
 
@@ -219,4 +222,55 @@ function codesErzeugen() {
   });
   if (neu.length) cs.getRange(cs.getLastRow() + 1, 1, neu.length, 2).setValues(neu);
   return neu.length;
+}
+
+// ---------- Fiche données élève ----------
+var FICHE_FELDER = [["classe", "Classe actuelle"], ["nom", "Nom"], ["prenom", "Prénom"], ["tel_mobile", "Téléphone mobile"], ["tel_fixe", "Téléphone fixe"], ["nationalite", "Nationalité"], ["matricule", "Matricule (13 chiffres)"], ["adresse", "Adresse postale"], ["email", "Adresse électronique"], ["iban", "Numéro de compte (IBAN)"], ["banque", "Nom de la banque ou CCP"], ["bic", "Code BIC"], ["titulaire", "Titulaire du compte"], ["rep_nom", "Représentant légal (nom et prénom)"], ["rep_adresse", "Adresse du représentant légal"], ["rep_tel", "Téléphone du représentant légal"], ["rep_email", "Adresse électronique du représentant légal"]];
+
+function ficheSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName('Fiche données');
+  if (!sh) {
+    sh = ss.insertSheet('Fiche données', ss.getSheets().length);
+    var head = ['Eingang', 'Name (Liste)'].concat(FICHE_FELDER.map(function (f) { return f[1]; }));
+    sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function saveFiche_(req) {
+  var name = String(req.name || '').trim();
+  if (!name) return json_({ ok: false, error: 'bad_request' });
+  var sh = sheet_();
+  var values = sh.getDataRange().getValues();
+  var headers = values[0].map(String);
+  var row = -1;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; }
+  }
+  if (row < 0) return json_({ ok: false, error: 'name' });
+  var own = codeOf_(name);
+  if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
+
+  var d = req.data || {};
+  var missing = FICHE_FELDER.filter(function (f) { return !String(d[f[0]] || '').trim(); }).map(function (f) { return f[1]; });
+  if (missing.length) return json_({ ok: false, error: 'missing', message: missing.join(', ') });
+
+  var line = [new Date(), name].concat(FICHE_FELDER.map(function (f) { return "'" + String(d[f[0]]).trim(); }));
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var fs = ficheSheet_();
+    var names = fs.getRange(1, 2, Math.max(fs.getLastRow(), 1), 1).getValues();
+    var r = -1;
+    for (var j = 1; j < names.length; j++) if (String(names[j][0]).trim().toLowerCase() === name.toLowerCase()) { r = j + 1; break; }
+    if (r < 0) fs.appendRow(line); else fs.getRange(r, 1, 1, line.length).setValues([line]);
+    var k = headers.indexOf('Fiche Donnée');
+    if (k >= 0) {
+      var cell = sh.getRange(row, k + 1);
+      if (String(cell.getValue()).trim().toLowerCase() !== 'x') cell.setValue('i');
+    }
+  } finally { lock.releaseLock(); }
+  return json_({ ok: true });
 }
