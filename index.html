@@ -113,7 +113,8 @@
   .matrix th,.matrix td{border-bottom:1px solid var(--line);padding:4px}
   .matrix thead th{height:150px;vertical-align:bottom;padding:0 2px 6px;border-bottom:2px solid var(--ink)}
   .matrix thead th .rot{writing-mode:vertical-rl;transform:rotate(180deg);text-transform:none;letter-spacing:0;font-size:.78rem;color:var(--ink);font-weight:700;white-space:nowrap}
-  .matrix .who{position:sticky;left:0;background:#fff;min-width:150px;white-space:nowrap;padding-right:10px;z-index:1}
+  .matrix .who{position:sticky;left:0;background:#fff;min-width:150px;max-width:190px;width:190px;white-space:nowrap;padding-right:10px;z-index:1;overflow:hidden;text-overflow:ellipsis}
+  .matrix .who .wish{white-space:normal;line-height:1.25;max-height:2.6em;overflow:hidden}
   .matrix .who small{display:block;color:var(--muted);font-size:.75rem}
   .cell{width:34px;height:30px;padding:0;border-radius:5px;font-weight:800;font-size:.9rem;border:1px solid var(--line)}
   .cell.s0{background:#fff;color:#9aa6b2}
@@ -232,7 +233,7 @@
   .ov-all td{vertical-align:top}
   .ov-all tr.ov-none td{color:var(--muted)}
   .ov-sort{border:0;background:none;padding:0;font:inherit;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:800;cursor:pointer}
-  .fbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;background:var(--card);border-radius:8px;padding:10px 12px;margin:8px 0 12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 40px);z-index:5}
+  .fbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;background:var(--card);border-radius:8px;padding:10px 12px;margin:8px 0 12px}
   .fbar label{display:flex;flex-direction:column;gap:2px;font-size:.75rem;font-weight:800;color:var(--ink)}
   .fbar select{font-size:.9rem;padding:5px 8px}
   .fbar button{padding:6px 10px;font-size:.8rem}
@@ -694,7 +695,7 @@ function renderMatrix(){
   const cols = matrixCols();
   let h = '<thead><tr><th class="who" scope="col">' + tr("Schüler") + '</th><th scope="col"><span class="rot">' + tr("Wochen") + '</span></th>' + cols.map(i => `<th scope="col" title="${esc(F(i,"t"))}"><span class="rot">${esc(F(i,"t"))}${i.due ? " · " + esc(F(i,"dl")) : ""}</span></th>`).join("") + '<th></th></tr></thead><tbody>';
   filtered().forEach(s => {
-    h += `<tr><th class="who" scope="row">${esc(s.name)}<small>${esc([s.klasse,s.betrieb].filter(Boolean).join(" · "))}</small>${s.land ? `<small class="wish">${tr("Wunsch")}: ${esc(s.land)}${s.wbetriebe ? " · " + esc(s.wbetriebe) : ""}${s.eigene ? " · " + tr("eigener Vorschlag") + ": " + esc(s.eigene) : ""}</small>` : ""}</th>`;
+    h += `<tr><th class="who" scope="row">${esc(s.name)}<small>${esc([s.klasse,s.betrieb].filter(Boolean).join(" · "))}</small>${s.land ? `<small class="wish" title="${esc([s.land, s.wbetriebe, s.eigene].filter(Boolean).join(" · "))}">${tr("Wunsch")}: ${esc(s.land)}${s.wbetriebe ? " · " + esc(s.wbetriebe) : ""}</small>` : ""}</th>`;
     const n = weeksOf(s);
     h += `<td><select class="wk" data-wk="${esc(s.id)}" aria-label="Anzahl Praktikumswochen ${esc(s.name)}">${[3,4,5,6].map(x => `<option${x === n ? " selected" : ""}>${x}</option>`).join("")}</select></td>`;
     cols.forEach(i => { const v = st(s,i.id);
