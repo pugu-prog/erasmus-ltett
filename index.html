@@ -237,6 +237,8 @@
   .fbar label{display:flex;flex-direction:column;gap:2px;font-size:.75rem;font-weight:800;color:var(--ink)}
   .fbar select{font-size:.9rem;padding:5px 8px}
   .fbar button{padding:6px 10px;font-size:.8rem}
+  .matrix .nr{position:sticky;left:0;background:#fff;z-index:2;width:34px;min-width:34px;text-align:right;color:var(--muted);font-weight:700}
+  .matrix .who{left:34px}
   .login{margin-top:28px}
   .login summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--cyan-ink)}
   footer{color:var(--muted);font-size:.85rem}
@@ -356,7 +358,7 @@
         <button type="button" id="fExport" class="primary">Als Excel exportieren</button>
         <span class="small" id="fCount"></span>
       </div>
-      <h3 id="abhaken" style="margin:10px 0 6px">Abhakliste</h3>
+      <h3 id="abhaken" style="margin:10px 0 6px">Abhakliste <span class="small" id="abCount"></span></h3>
       <div class="scroll"><table class="matrix" id="matrix"></table></div>
       <details class="fold" id="overFold">
       <summary>Übersicht Wunschländer und Betriebe</summary>
@@ -693,9 +695,9 @@ function renderMine(){
 function renderMatrix(){
   const t = $("matrix");
   const cols = matrixCols();
-  let h = '<thead><tr><th class="who" scope="col">' + tr("Schüler") + '</th><th scope="col"><span class="rot">' + tr("Wochen") + '</span></th>' + cols.map(i => `<th scope="col" title="${esc(F(i,"t"))}"><span class="rot">${esc(F(i,"t"))}${i.due ? " · " + esc(F(i,"dl")) : ""}</span></th>`).join("") + '<th></th></tr></thead><tbody>';
-  filtered().forEach(s => {
-    h += `<tr><th class="who" scope="row">${esc(s.name)}<small>${esc([s.klasse,s.betrieb].filter(Boolean).join(" · "))}</small>${s.land ? `<small class="wish" title="${esc([s.land, s.wbetriebe, s.eigene].filter(Boolean).join(" · "))}">${tr("Wunsch")}: ${esc(s.land)}${s.wbetriebe ? " · " + esc(s.wbetriebe) : ""}</small>` : ""}</th>`;
+  let h = '<thead><tr><th class="nr num" scope="col">' + tr("Nr.") + '</th><th class="who" scope="col">' + tr("Schüler") + '</th><th scope="col"><span class="rot">' + tr("Wochen") + '</span></th>' + cols.map(i => `<th scope="col" title="${esc(F(i,"t"))}"><span class="rot">${esc(F(i,"t"))}${i.due ? " · " + esc(F(i,"dl")) : ""}</span></th>`).join("") + '<th></th></tr></thead><tbody>';
+  filtered().forEach((s, ix) => {
+    h += `<tr><td class="nr num">${ix + 1}</td><th class="who" scope="row">${esc(s.name)}<small>${esc([s.klasse,s.betrieb].filter(Boolean).join(" · "))}</small>${s.land ? `<small class="wish" title="${esc([s.land, s.wbetriebe, s.eigene].filter(Boolean).join(" · "))}">${tr("Wunsch")}: ${esc(s.land)}${s.wbetriebe ? " · " + esc(s.wbetriebe) : ""}</small>` : ""}</th>`;
     const n = weeksOf(s);
     h += `<td><select class="wk" data-wk="${esc(s.id)}" aria-label="Anzahl Praktikumswochen ${esc(s.name)}">${[3,4,5,6].map(x => `<option${x === n ? " selected" : ""}>${x}</option>`).join("")}</select></td>`;
     cols.forEach(i => { const v = st(s,i.id);
@@ -705,6 +707,8 @@ function renderMatrix(){
   });
   t.innerHTML = h + "</tbody>";
   renderFilters();
+  const n = filtered().length, all = data.students.length;
+  $("abCount").textContent = "· " + (n === all ? all + " " + tr("Schüler") : n + " " + tr("von") + " " + all + " " + tr("Schüler"));
   renderOverview();
 }
 
@@ -1113,10 +1117,10 @@ function renderOverview(){
   const val = (s, k) => k === "name" ? s.name : k === "klasse" ? (s.klasse || "") : k === "land" ? (s.land || "~") : k === "betriebe" ? (s.wbetriebe || "~") : k === "eigene" ? (s.eigene || "~") : k === "fiche" ? String(st(s, "fiche")) : "";
   const rows = filtered();
   const th = (k, t) => `<th><button type="button" class="ov-sort" data-k="${k}">${esc(tr(t))}${key === k ? (dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
-  html += `<div class="ov-h">${tr("Alle Schüler auf einen Blick")}</div><div class="scroll"><table class="ov-table ov-all"><thead><tr>${th("name","Schüler")}${th("klasse","Klasse")}${th("land","Wunschland")}${th("betriebe","Betriebe in Portugal")}${th("eigene","Eigene Vorschläge")}${th("fiche","Fiche")}</tr></thead><tbody>`;
-  rows.forEach(s => {
+  html += `<div class="ov-h">${tr("Alle Schüler auf einen Blick")} · ${rows.length} ${tr("Schüler")}</div><div class="scroll"><table class="ov-table ov-all"><thead><tr><th class="num">${tr("Nr.")}</th>${th("name","Schüler")}${th("klasse","Klasse")}${th("land","Wunschland")}${th("betriebe","Betriebe in Portugal")}${th("eigene","Eigene Vorschläge")}${th("fiche","Fiche")}</tr></thead><tbody>`;
+  rows.forEach((s, ix) => {
     const f = st(s, "fiche");
-    html += `<tr class="${s.land ? "" : "ov-none"}"><td><b>${esc(s.name)}</b></td><td>${esc(s.klasse || "")}</td><td>${s.land ? esc(tr(s.land)) : `<span class="small">${tr("noch kein Wunsch")}</span>`}</td><td>${esc(s.wbetriebe || "")}</td><td>${esc(s.eigene || "")}</td><td><span class="chip s${f}">${tr(LABEL[f])}</span></td></tr>`;
+    html += `<tr class="${s.land ? "" : "ov-none"}"><td class="num">${ix + 1}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.klasse || "")}</td><td>${s.land ? esc(tr(s.land)) : `<span class="small">${tr("noch kein Wunsch")}</span>`}</td><td>${esc(s.wbetriebe || "")}</td><td>${esc(s.eigene || "")}</td><td><span class="chip s${f}">${tr(LABEL[f])}</span></td></tr>`;
   });
   html += `</tbody></table></div><div class="ov-h">${tr("Nach Land")}</div><div class="ov-grid">`;
   lands.forEach(l => {
