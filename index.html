@@ -715,9 +715,19 @@ function fromSheet(res){
   });
   return {updated: res.updated || "", students};
 }
+// Nur geänderte Felder schicken, damit Abgaben der Schüler (z. B. „in Arbeit“) nicht überschrieben werden
+const dirtyCells = new Map();
+function touch(id, field){ if (!dirtyCells.has(id)) dirtyCells.set(id, new Set()); dirtyCells.get(id).add(field); }
 function toRow(s){
-  const row = {Name: s.name, Klasse: s.klasse || "", Betrieb: s.betrieb || "", Wochen: weeksOf(s)};
-  Object.entries(COLS).forEach(([id, col]) => { row[col] = fromVal(st(s, id)); });
+  const f = dirtyCells.get(s.id) || new Set();
+  const row = {Name: s.name};
+  if (f.has("__new")){
+    Object.assign(row, {Klasse: s.klasse || "", Betrieb: s.betrieb || "", Wochen: weeksOf(s)});
+    Object.entries(COLS).forEach(([id, col]) => { row[col] = fromVal(st(s, id)); });
+    return row;
+  }
+  if (f.has("Wochen")) row.Wochen = weeksOf(s);
+  f.forEach(id => { if (COLS[id]) row[COLS[id]] = fromVal(st(s, id)); });
   return row;
 }
 async function api(body){
@@ -753,21 +763,21 @@ $("matrix").addEventListener("click", e => {
   const s = data.students.find(x => x.id === b.dataset.s); if (!s) return;
   const v = (st(s,b.dataset.i) + 1) % 3;
   if (v) s.status[b.dataset.i] = v; else delete s.status[b.dataset.i];
-  markDirty(s.id); renderMatrix(); renderMine();
+  touch(s.id, b.dataset.i); markDirty(s.id); renderMatrix(); renderMine();
 });
 
 $("matrix").addEventListener("change", e => {
   const sel = e.target.closest("select.wk"); if (!sel) return;
   const s = data.students.find(x => x.id === sel.dataset.wk); if (!s) return;
   s.wochen = parseInt(sel.value, 10);
-  markDirty(s.id); renderMatrix(); renderMine();
+  touch(s.id, "Wochen"); markDirty(s.id); renderMatrix(); renderMine();
 });
 
 function addStudent(name, klasse, betrieb){
   name = name.trim(); if (!name) return false;
   if (data.students.some(s => s.name.toLowerCase() === name.toLowerCase())) return false;
   const s = {id: name, name, klasse: klasse.trim(), betrieb: betrieb.trim(), status: {}};
-  data.students.push(s); removedNames.delete(name); markDirty(name); return true;
+  data.students.push(s); removedNames.delete(name); touch(name, "__new"); markDirty(name); return true;
 }
 $("addform").addEventListener("submit", e => {
   e.preventDefault();
@@ -793,7 +803,7 @@ $("save").addEventListener("click", async () => {
       $("saveMsg").textContent = res.error === "code" ? tr("Der Lehrer-Code stimmt nicht mehr. Bitte neu anmelden.") : "Speichern hat nicht geklappt: " + (res.error || "unbekannter Fehler");
       $("save").disabled = false; return;
     }
-    dirtyNames.clear(); removedNames.clear(); dirty = false;
+    dirtyNames.clear(); removedNames.clear(); dirtyCells.clear(); dirty = false;
     data = fromSheet(res.data); renderAll();
     $("saveMsg").textContent = tr("Gespeichert. Die Schüler sehen jetzt den neuen Stand.");
   } catch (err) {
@@ -820,7 +830,7 @@ function logout(){
   if (dirty && !window.confirmLogout){ $("saveMsg").textContent = tr("Erst speichern, dann abmelden. Nochmal klicken zum Abmelden ohne Speichern."); window.confirmLogout = true; return; }
   window.confirmLogout = false;
   try { sessionStorage.removeItem("erasmus-code"); } catch(e){}
-  canWrite = false; dirty = false; dirtyNames.clear(); removedNames.clear();
+  canWrite = false; dirty = false; dirtyNames.clear(); removedNames.clear(); dirtyCells.clear();
   $("teacher").hidden = true; $("loginBox").hidden = false; $("authBar").hidden = true;
   $("loginMsg").textContent = tr("Abgemeldet.");
 }
