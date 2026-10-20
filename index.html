@@ -1008,17 +1008,17 @@ $("wunschForm").addEventListener("submit", async e => {
 // ---------- Übersicht Wunschländer (Lehreransicht) ----------
 function renderOverview(){
   const box = $("overview"); if (!box) return;
-  const st = data.students, total = st.length;
+  const S = data.students, total = S.length;
   const chip = s => `<span class="ov-chip">${esc(s.name.split("·")[0].trim())} · ${esc(s.klasse || "")}</span>`;
   const byLand = {};
-  st.filter(s => s.land).forEach(s => (byLand[s.land] = byLand[s.land] || []).push(s));
+  S.filter(s => s.land).forEach(s => (byLand[s.land] = byLand[s.land] || []).push(s));
   const lands = Object.keys(byLand).sort((a,b) => byLand[b].length - byLand[a].length || a.localeCompare(b,"de"));
-  const none = st.filter(s => !s.land);
-  let html = `<p class="small">${st.length - none.length} ${tr("von")} ${total} ${tr("Schülern haben einen Wunsch eingetragen.")}</p>`;
+  const none = S.filter(s => !s.land);
+  let html = `<p class="small">${S.length - none.length} ${tr("von")} ${total} ${tr("Schülern haben einen Wunsch eingetragen.")}</p>`;
   // Alle Schüler auf einen Blick
   const key = window.ovSort || "name", dir = window.ovDir || 1;
   const val = (s, k) => k === "name" ? s.name : k === "klasse" ? (s.klasse || "") : k === "land" ? (s.land || "~") : k === "betriebe" ? (s.wbetriebe || "~") : k === "eigene" ? (s.eigene || "~") : k === "fiche" ? String(st(s, "fiche")) : "";
-  const rows = st.slice().sort((a,b) => dir * val(a,key).localeCompare(val(b,key), "de") || a.name.localeCompare(b.name, "de"));
+  const rows = S.slice().sort((a,b) => dir * val(a,key).localeCompare(val(b,key), "de") || a.name.localeCompare(b.name, "de"));
   const th = (k, t) => `<th><button type="button" class="ov-sort" data-k="${k}">${esc(tr(t))}${key === k ? (dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
   html += `<div class="ov-h">${tr("Alle Schüler auf einen Blick")}</div><div class="scroll"><table class="ov-table ov-all"><thead><tr>${th("name","Schüler")}${th("klasse","Klasse")}${th("land","Wunschland")}${th("betriebe","Betriebe in Portugal")}${th("eigene","Eigene Vorschläge")}${th("fiche","Fiche")}</tr></thead><tbody>`;
   rows.forEach(s => {
@@ -1034,14 +1034,14 @@ function renderOverview(){
   html += `</div>`;
   // Betriebe in Portugal
   const byFirm = {};
-  st.filter(s => s.land === "Portugal").forEach(s => (s.wbetriebe || "").split(",").map(x => x.trim()).filter(Boolean).forEach(b => (byFirm[b] = byFirm[b] || []).push(s)));
+  S.filter(s => s.land === "Portugal").forEach(s => (s.wbetriebe || "").split(",").map(x => x.trim()).filter(Boolean).forEach(b => (byFirm[b] = byFirm[b] || []).push(s)));
   const firms = Object.keys(byFirm).sort((a,b) => byFirm[b].length - byFirm[a].length || a.localeCompare(b,"de"));
   if (firms.length){
     html += `<div class="ov-h">${tr("Betriebe in Portugal")}</div><div class="scroll"><table class="ov-table"><thead><tr><th>${tr("Betrieb")}</th><th class="num">${tr("Anzahl")}</th><th>${tr("Schüler")}</th></tr></thead><tbody>`;
     firms.forEach(f => html += `<tr><td><b>${esc(f)}</b></td><td class="num">${byFirm[f].length}</td><td><div class="ov-chips">${byFirm[f].map(chip).join("")}</div></td></tr>`);
     html += `</tbody></table></div>`;
   }
-  const own = st.filter(s => s.eigene);
+  const own = S.filter(s => s.eigene);
   if (own.length){
     html += `<div class="ov-h">${tr("Eigene Vorschläge der Schüler")}</div><div class="scroll"><table class="ov-table"><thead><tr><th>${tr("Schüler")}</th><th>${tr("Wunschland")}</th><th>${tr("Betrieb (Ort)")}</th></tr></thead><tbody>`;
     own.forEach(s => html += `<tr><td>${chip(s)}</td><td>${esc(tr(s.land || ""))}</td><td>${esc(s.eigene)}</td></tr>`);
