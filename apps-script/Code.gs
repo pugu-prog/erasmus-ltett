@@ -65,6 +65,7 @@ function handlePost_(e) {
 
   if (req.action === 'upload') return upload_(req);
   if (req.action === 'fiche') return saveFiche_(req);
+  if (req.action === 'wunsch') return saveWunsch_(req);
 
   var expected = PropertiesService.getScriptProperties().getProperty('LEHRER_CODE');
   if (!expected || String(req.code || '') !== expected) return json_({ ok: false, error: 'code' });
@@ -271,6 +272,42 @@ function saveFiche_(req) {
       var cell = sh.getRange(row, k + 1);
       if (String(cell.getValue()).trim().toLowerCase() !== 'x') cell.setValue('i');
     }
+  } finally { lock.releaseLock(); }
+  return json_({ ok: true });
+}
+
+// ---------- Wunschland / Wunschbetriebe ----------
+var LAENDER = ['Deutschland', 'Portugal', 'Österreich', 'Kosovo'];
+
+function colOf_(sh, headers, name) {
+  var k = headers.indexOf(name);
+  if (k < 0) { headers.push(name); k = headers.length - 1; sh.getRange(1, k + 1).setValue(name); }
+  return k + 1;
+}
+
+function saveWunsch_(req) {
+  var name = String(req.name || '').trim();
+  var land = String(req.land || '').trim();
+  var betriebe = (req.betriebe || []).map(function (b) { return String(b).trim(); }).filter(String);
+  if (!name || !land || land.length > 60) return json_({ ok: false, error: 'bad_request' });
+  var sh = sheet_();
+  var values = sh.getDataRange().getValues();
+  var headers = values[0].map(String);
+  var row = -1;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; }
+  }
+  if (row < 0) return json_({ ok: false, error: 'name' });
+  var own = codeOf_(name);
+  if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
+  if (land !== 'Portugal') betriebe = [];
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var cL = colOf_(sh, headers, 'Wunschland');
+    var cB = colOf_(sh, headers, 'Wunschbetriebe');
+    sh.getRange(row, cL).setValue(land);
+    sh.getRange(row, cB).setValue(betriebe.join(', ').slice(0, 400));
   } finally { lock.releaseLock(); }
   return json_({ ok: true });
 }
