@@ -255,10 +255,11 @@ function saveFiche_(req) {
   if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
 
   var d = req.data || {};
-  var missing = FICHE_FELDER.filter(function (f) { return !String(d[f[0]] || '').trim(); }).map(function (f) { return f[1]; });
+  var OPTIONAL = { tel_fixe: true };
+  var missing = FICHE_FELDER.filter(function (f) { return !OPTIONAL[f[0]] && !String(d[f[0]] || '').trim(); }).map(function (f) { return f[1]; });
   if (missing.length) return json_({ ok: false, error: 'missing', message: missing.join(', ') });
 
-  var line = [new Date(), name].concat(FICHE_FELDER.map(function (f) { return "'" + String(d[f[0]]).trim(); }));
+  var line = [new Date(), name].concat(FICHE_FELDER.map(function (f) { return "'" + String(d[f[0]] || '').trim(); }));
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
