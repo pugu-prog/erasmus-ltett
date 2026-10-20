@@ -301,6 +301,9 @@ function saveWunsch_(req) {
   var own = codeOf_(name);
   if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
   if (land !== 'Portugal') betriebe = [];
+  var eigene = (req.eigene || []).slice(0, 10).map(function (e) {
+    return { name: String(e.name || '').trim().slice(0, 100), ort: String(e.ort || '').trim().slice(0, 80), kontakt: String(e.kontakt || '').trim().slice(0, 200) };
+  }).filter(function (e) { return e.name; });
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -308,6 +311,17 @@ function saveWunsch_(req) {
     var cB = colOf_(sh, headers, 'Wunschbetriebe');
     sh.getRange(row, cL).setValue(land);
     sh.getRange(row, cB).setValue(betriebe.join(', ').slice(0, 400));
+    var cE = colOf_(sh, headers, 'Eigene Betriebe');
+    sh.getRange(row, cE).setValue(eigene.map(function (e) { return e.name + (e.ort ? ' (' + e.ort + ')' : ''); }).join('; ').slice(0, 500));
+    if (eigene.length) {
+      var vs = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Betriebsvorschläge');
+      if (!vs) {
+        vs = SpreadsheetApp.getActiveSpreadsheet().insertSheet('Betriebsvorschläge', SpreadsheetApp.getActiveSpreadsheet().getSheets().length);
+        vs.getRange(1, 1, 1, 6).setValues([['Eingang', 'Schüler', 'Land', 'Betrieb', 'Ort', 'Webseite / Kontakt']]).setFontWeight('bold');
+        vs.setFrozenRows(1);
+      }
+      eigene.forEach(function (e) { vs.appendRow([new Date(), name, land, e.name, e.ort, "'" + e.kontakt]); });
+    }
   } finally { lock.releaseLock(); }
   return json_({ ok: true });
 }
