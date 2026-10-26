@@ -301,7 +301,7 @@
     <div class="tl-tabs" role="tablist" aria-label="Klasse">
       <button type="button" class="tl-tab" data-grp="DP3ET" role="tab">DP3ET</button>
       <button type="button" class="tl-tab active" data-grp="TPSTU" role="tab">1TPSTU · 2TPSTU</button>
-      <button type="button" class="tl-tab" data-grp="3TPSTU" role="tab">3TPSTU</button>
+      <button type="button" class="tl-tab" data-grp="3TPSTU" role="tab">3TPST</button>
     </div>
     <div class="tl-legend">
       <span><i class="k abgabe"></i>Abgabe Schüler</span>
@@ -618,6 +618,7 @@ const FRIDAYS = {
   "2TPSTU": ["2027-01-29","2027-02-05","2027-02-12","2027-02-19"],
   "3TPSTU": ["2027-03-26","2027-04-02","2027-04-09","2027-04-16"]
 };
+FRIDAYS["3TPST"] = FRIDAYS["3TPSTU"];
 const MAXWEEKS = 6;
 function fridays(s){ return FRIDAYS[(s.klasse || "").toUpperCase()] || []; }
 function weeksOf(s){ return s.wochen || fridays(s).length || 4; }
@@ -668,8 +669,8 @@ function renderPicker(){
   $("updated").textContent = "";
 }
 
-const ZEITRAUM_EN = {"DP3ET":"11 January – 12 February 2027","1TPSTU":"25 January – 19 February 2027","2TPSTU":"25 January – 19 February 2027","3TPSTU":"22 March – 16 April 2027"};
-const ZEITRAUM = {"DP3ET":"11. Januar – 12. Februar 2027","1TPSTU":"25. Januar – 19. Februar 2027","2TPSTU":"25. Januar – 19. Februar 2027","3TPSTU":"22. März – 16. April 2027"};
+const ZEITRAUM_EN = {"DP3ET":"11 January – 12 February 2027","1TPSTU":"25 January – 19 February 2027","2TPSTU":"25 January – 19 February 2027","3TPSTU":"22 March – 16 April 2027", "3TPST":"22 March – 16 April 2027"};
+const ZEITRAUM = {"DP3ET":"11. Januar – 12. Februar 2027","1TPSTU":"25. Januar – 19. Februar 2027","2TPSTU":"25. Januar – 19. Februar 2027","3TPSTU":"22. März – 16. April 2027", "3TPST":"22. März – 16. April 2027"};
 function renderMine(){
   const s = data.students.find(x => x.id === $("who").value), box = $("mine");
   if (!s){ box.innerHTML = '<div class="empty">' + tr("Wähle oben deinen Namen. Dann siehst du, welche Punkte schon erledigt sind und was noch fehlt.") + '</div>'; return; }
@@ -776,7 +777,7 @@ $("who").addEventListener("change", () => {
   try { localStorage.setItem("erasmus-who", $("who").value); } catch(e){}
   renderMine();
   const s = data.students.find(x => x.id === $("who").value);
-  if (s){ const k = (s.klasse || "").toUpperCase(); renderTimeline(k === "DP3ET" ? "DP3ET" : k === "3TPSTU" ? "3TPSTU" : "TPSTU"); }
+  if (s){ const k = (s.klasse || "").toUpperCase(); renderTimeline(k === "DP3ET" ? "DP3ET" : (k === "3TPSTU" || k === "3TPST") ? "3TPSTU" : "TPSTU"); }
 });
 
 $("matrix").addEventListener("click", e => {
