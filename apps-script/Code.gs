@@ -53,7 +53,7 @@ function statusAbgleichen_() {
   var headers = values[0].map(String);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var done = {};
-  var fs = ss.getSheetByName('Fiche données');
+  var fs = findFicheSheet_(ss);
   if (fs && fs.getLastRow() > 1) fs.getRange(2, 2, fs.getLastRow() - 1, 1).getValues().forEach(function (r) { if (r[0]) done[String(r[0]).trim().toLowerCase()] = true; });
   var wunsch = {};
   var vs = ss.getSheetByName('Betriebsvorschläge');
@@ -256,9 +256,19 @@ function codesErzeugen() {
 // ---------- Fiche données élève ----------
 var FICHE_FELDER = [["classe", "Classe actuelle"], ["nom", "Nom"], ["prenom", "Prénom"], ["tel_mobile", "Téléphone mobile"], ["tel_fixe", "Téléphone fixe"], ["nationalite", "Nationalité"], ["matricule", "Matricule (13 chiffres)"], ["adresse", "Adresse postale"], ["email", "Adresse électronique"], ["iban", "Numéro de compte (IBAN)"], ["banque", "Nom de la banque ou CCP"], ["bic", "Code BIC"], ["titulaire", "Titulaire du compte"], ["rep_nom", "Représentant légal (nom et prénom)"], ["rep_adresse", "Adresse du représentant légal"], ["rep_tel", "Téléphone du représentant légal"], ["rep_email", "Adresse électronique du représentant légal"]];
 
+/** Findet das Blatt „Fiche données“ auch bei abweichender Schreibweise (Leerzeichen, é-Kodierung). */
+function findFicheSheet_(ss) {
+  var all = ss.getSheets();
+  for (var i = 0; i < all.length; i++) {
+    var n = all[i].getName().normalize('NFC').trim().toLowerCase();
+    if (n.indexOf('fiche') === 0 && n !== 'fiche donnée') return all[i];
+  }
+  return null;
+}
+
 function ficheSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName('Fiche données');
+  var sh = findFicheSheet_(ss);
   if (!sh) {
     sh = ss.insertSheet('Fiche données', ss.getSheets().length);
     var head = ['Eingang', 'Name (Liste)'].concat(FICHE_FELDER.map(function (f) { return f[1]; }));
