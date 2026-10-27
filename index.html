@@ -593,7 +593,8 @@ function F(o, k){ return LANG === "en" && o.en && o.en[k] != null ? o.en[k] : o[
 
 const ITEMS = [
   {id:"motiv_ltett", g:"Bewerbung", t:"Bewerbung: Motivationsschreiben an die Schule", h:"Handschriftlich, Englisch, an Guy Putz und Christophe Scholtes · Büro 008", w:"Schüler", due:"2026-10-20", dl:"Di. 20.10., 12 Uhr", en:{"t": "Application: motivation letter to the school", "h": "Handwritten, in English, to Guy Putz and Christophe Scholtes · Office 008", "w": "Student", "dl": "Tue 20 Oct, 12:00"}},
-  {id:"fiche", g:"Vorbereitung", t:"Fiche Donnée Schüler", h:"Formular auf dieser Seite ausfüllen (Abschnitt Fiche données)", w:"Schüler", due:"2026-10-30", dl:"Fr. 30.10.", en:{"t": "Student data sheet (Fiche Donnée)", "h": "Fill in the form on this page (Fiche données)", "w": "Student", "dl": "Fri 30 Oct"}},
+  {id:"fiche", g:"Vorbereitung", t:"Fiche Donnée Schüler", h:"Formular auf dieser Seite ausfüllen (Abschnitt Fiche données) · wird automatisch abgehakt", w:"Schüler", due:"2026-10-30", dl:"Fr. 30.10.", en:{"t": "Student data sheet (Fiche Donnée)", "h": "Fill in the form on this page (Fiche données) · ticked automatically", "w": "Student", "dl": "Fri 30 Oct"}},
+  {id:"wunsch", g:"Vorbereitung", t:"Wunschland und Wunschbetrieb", h:"Formular auf dieser Seite ausfüllen (Abschnitt Wunschland) · wird automatisch abgehakt", w:"Schüler", due:"2026-10-30", dl:"Fr. 30.10.", en:{"t": "Preferred country and company", "h": "Fill in the form on this page (preferred country) · ticked automatically", "w": "Student", "dl": "Fri 30 Oct"}},
   {id:"motiv_firma", g:"Vorbereitung", t:"Motivationsschreiben Betrieb", h:"Englisch · Teams, eigener Ordner", w:"Schüler", due:"2026-11-13", dl:"Fr. 13.11.", en:{"t": "Motivation letter for the company", "h": "English · Teams, personal folder", "w": "Student", "dl": "Fri 13 Nov"}},
   {id:"cv", g:"Vorbereitung", t:"CV auf Englisch", h:"Teams, eigener Ordner", w:"Schüler", due:"2026-11-13", dl:"Fr. 13.11.", en:{"t": "CV in English", "h": "Teams, personal folder", "w": "Student", "dl": "Fri 13 Nov"}},
   {id:"grant_erstellt", g:"Vorbereitung", t:"Grant Agreement erstellt", h:"Teams Admin", w:"Jo-Anne Schreiner", due:"2026-11-13", dl:"Fr. 13.11.", en:{"t": "Grant Agreement prepared", "h": "Teams admin", "w": "Jo-Anne Schreiner", "dl": "Fri 13 Nov"}},
@@ -720,7 +721,7 @@ function renderMatrix(){
 // ---------- Verbindung zur Google-Tabelle ----------
 // Hier die Web-App-URL des Google-Skripts eintragen (endet auf /exec):
 const API_URL = "https://script.google.com/macros/s/AKfycbzXefxTUM_U7FA9Sj-ysfp3rjLUAehpFTRlhot1gHyuPeyD_U02E9Z155mriV0sLmc7/exec";
-const COLS = {motiv_ltett:"Motivationsschreiben LTEtt", fiche:"Fiche Donnée", motiv_firma:"Motivationsschreiben Betrieb", cv:"CV",
+const COLS = {motiv_ltett:"Motivationsschreiben LTEtt", fiche:"Fiche Donnée", wunsch:"Wunsch abgegeben", motiv_firma:"Motivationsschreiben Betrieb", cv:"CV",
   grant_erstellt:"Grant Agreement erstellt", grant:"Grant Agreement unterschrieben", learning_erstellt:"Learning Agreement erstellt",
   learning:"Learning Agreement unterschrieben", ols1:"1. Sprachtest", infoabend:"Infoabend", geld80:"80 % überwiesen",
   papiere:"Papiere Betrieb", ols2:"2. Sprachtest", eu:"EU-Umfrage", bericht:"Praktikumsbericht", geld20:"20 % überwiesen"};

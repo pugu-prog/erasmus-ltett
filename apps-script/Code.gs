@@ -41,7 +41,35 @@ function json_(obj) {
 }
 
 function doGet() {
+  try { statusAbgleichen_(); } catch (err) {}
   return json_(readAll_());
+}
+
+/** Hakt „Fiche Donnée“ ab für alle, deren Fiche im Blatt „Fiche données“ steht,
+ *  und „Wunsch abgegeben“ für alle, die selbst einen eigenen Betrieb eingetragen haben. */
+function statusAbgleichen_() {
+  var sh = sheet_();
+  var values = sh.getDataRange().getValues();
+  var headers = values[0].map(String);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var done = {};
+  var fs = ss.getSheetByName('Fiche données');
+  if (fs && fs.getLastRow() > 1) fs.getRange(2, 2, fs.getLastRow() - 1, 1).getValues().forEach(function (r) { if (r[0]) done[String(r[0]).trim().toLowerCase()] = true; });
+  var wunsch = {};
+  var vs = ss.getSheetByName('Betriebsvorschläge');
+  if (vs && vs.getLastRow() > 1) vs.getRange(2, 2, vs.getLastRow() - 1, 5).getValues().forEach(function (r) {
+    if (r[0] && String(r[4]).indexOf('aus Motivationsschreiben') < 0) wunsch[String(r[0]).trim().toLowerCase()] = true;
+  });
+  var kF = headers.indexOf('Fiche Donnée');
+  var kW = headers.indexOf('Wunsch abgegeben');
+  for (var i = 1; i < values.length; i++) {
+    var n = String(values[i][0]).trim().toLowerCase();
+    if (kF >= 0 && done[n] && String(values[i][kF]).trim().toLowerCase() !== 'x') sh.getRange(i + 1, kF + 1).setValue('x');
+    if (wunsch[n]) {
+      if (kW < 0) kW = colOf_(sh, headers, 'Wunsch abgegeben') - 1;
+      if (String(values[i][kW] || '').trim().toLowerCase() !== 'x') sh.getRange(i + 1, kW + 1).setValue('x');
+    }
+  }
 }
 
 function doPost(e) {
@@ -271,7 +299,7 @@ function saveFiche_(req) {
     var k = headers.indexOf('Fiche Donnée');
     if (k >= 0) {
       var cell = sh.getRange(row, k + 1);
-      if (String(cell.getValue()).trim().toLowerCase() !== 'x') cell.setValue('i');
+      cell.setValue('x'); // alle Pflichtfelder geprüft → automatisch erledigt
     }
   } finally { lock.releaseLock(); }
   return json_({ ok: true });
@@ -313,6 +341,8 @@ function saveWunsch_(req) {
     sh.getRange(row, cL).setValue(land);
     sh.getRange(row, cB).setValue(betriebe.join(', ').slice(0, 400));
     var cE = colOf_(sh, headers, 'Eigene Betriebe');
+    // komplett = Land und (bei Portugal) mindestens ein Betrieb oder eigener Vorschlag → automatisch abhaken
+    if (land !== 'Portugal' || betriebe.length || eigene.length) sh.getRange(row, colOf_(sh, headers, 'Wunsch abgegeben')).setValue('x');
     sh.getRange(row, cE).setValue(eigene.map(function (e) { return e.name + (e.ort ? ' (' + e.ort + ')' : ''); }).join('; ').slice(0, 500));
     if (eigene.length) {
       var vs = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Betriebsvorschläge');
