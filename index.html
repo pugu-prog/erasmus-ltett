@@ -358,6 +358,35 @@
       <p class="small">Klicke ein Feld an: offen → in Arbeit → erledigt → offen. Danach „Speichern“, dann sehen die Schüler den neuen Stand. Gespeichert wird in der Google-Tabelle „Erasmus+ Stand 2026-27 (Lehrer)“. <button type="button" id="logout" class="del">Abmelden</button></p>
       <p><a id="folderLink" href="#" target="_blank" rel="noopener" hidden><b>Abgaben-Ordner in Google Drive öffnen →</b></a></p>
       <p><a id="ficheLink" href="#" target="_blank" rel="noopener" hidden><b>Fiches données als Excel herunterladen →</b></a></p>
+      <details class="fold" id="cryptFold">
+      <summary>Verschlüsselte Abgaben und Fiches</summary>
+      <div class="foldbody">
+        <div id="keySetup" hidden>
+          <p class="small">Noch kein Schlüssel eingerichtet. Einmal einrichten, dann verschlüsseln die Schüler-Browser Fiches und Dateien. Lesen kann sie nur, wer die Passphrase oder den Wiederherstellungscode kennt.</p>
+          <form id="keyForm" class="addform" autocomplete="off">
+            <label for="kp1">Passphrase (mindestens 12 Zeichen)<span class="pw"><input type="password" id="kp1" autocomplete="new-password"><button type="button" class="eye" data-for="kp1" aria-pressed="false">Anzeigen</button></span></label>
+            <label for="kp2">Passphrase wiederholen<span class="pw"><input type="password" id="kp2" autocomplete="new-password"><button type="button" class="eye" data-for="kp2" aria-pressed="false">Anzeigen</button></span></label>
+            <button type="submit" class="primary" id="keyBtn">Schlüssel einrichten</button>
+            <span class="save-msg" id="keyMsg" role="status"></span>
+          </form>
+        </div>
+        <div id="keyDone" class="note" hidden>
+          <p><b>Wiederherstellungscode – jetzt auf Papier aufschreiben:</b></p>
+          <p><code id="recCode" style="font-size:1.15rem;letter-spacing:.06em"></code></p>
+          <p class="small">Ohne Passphrase und ohne diesen Code kann niemand die verschlüsselten Abgaben mehr lesen. Bewahre den Zettel getrennt vom Rechner auf.</p>
+          <button type="button" id="keyFile">Schlüsseldatei als Sicherung speichern</button>
+        </div>
+        <div id="keyUse" hidden>
+          <p class="small">Schlüssel-Fingerabdruck: <code id="keyFp"></code></p>
+          <form id="decForm" class="addform" autocomplete="off">
+            <label for="decPass">Passphrase oder Wiederherstellungscode<span class="pw"><input type="password" id="decPass" autocomplete="off"><button type="button" class="eye" data-for="decPass" aria-pressed="false">Anzeigen</button></span></label>
+            <button type="submit" class="primary" id="decBtn">Entschlüsseln und als ZIP herunterladen</button>
+          </form>
+          <p class="save-msg" id="decMsg" role="status"></p>
+          <p class="small">Die ZIP-Datei enthält einen Ordner pro Schüler und die Fiches als Excel. Sie ist nicht verschlüsselt: direkt in Teams ablegen und vom Rechner löschen.</p>
+        </div>
+      </div>
+      </details>
       <div class="toolbar">
         <button class="primary" id="save" disabled>Speichern</button>
         <span class="save-msg" id="saveMsg" role="status">Keine Änderungen.</span>
@@ -407,6 +436,7 @@
       <label for="upFile" class="wide">Datei (PDF, Word, Foto · höchstens 15 MB)<input type="file" id="upFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic" required></label>
       <button type="submit" class="primary" id="upBtn">Hochladen</button>
     </form>
+    <p class="small encnote" hidden>🔒 Wird schon in deinem Browser verschlüsselt. Lesen können es nur die zuständigen Lehrer.</p>
     <p class="save-msg" id="upMsg" role="status"></p>
     <p class="small">Das handschriftliche Motivationsschreiben an die Schule gibst du weiterhin auf Papier in Büro 008 ab.</p>
   </div>
@@ -440,6 +470,7 @@
         <label class="wide check"><span><input type="checkbox" id="f_ok" required> Je confirme que les données sont correctes et j’accepte leur utilisation pour mon dossier Erasmus+.</span></label>
       <button type="submit" class="primary" id="fBtn">Fiche abschicken</button>
     </form>
+    <p class="small encnote" hidden>🔒 Wird schon in deinem Browser verschlüsselt. Lesen können es nur die zuständigen Lehrer.</p>
     <p class="save-msg" id="fMsg" role="status"></p>
     </details>
   </div>
@@ -606,6 +637,8 @@ Object.assign(I18N, {
   "Zu viele falsche Versuche. Warte 15 Minuten und versuche es dann noch einmal.": "Too many wrong attempts. Wait 15 minutes and then try again.",
   "Dieser Code stimmt nicht. Prüfe ihn oder frag Herrn Putz.": "This code is not correct. Check it or ask Mr Putz.",
   "– erst Code eingeben –": "– enter your code first –",
+  "Wähle oben einen Schüler, um seinen Stand zu sehen.": "Choose a student above to see their progress.",
+  "🔒 Wird schon in deinem Browser verschlüsselt. Lesen können es nur die zuständigen Lehrer.": "🔒 Encrypted in your browser before sending. Only the teachers in charge can read it.",
   "Deinen Stand siehst du nur mit deinem persönlichen Code, demselben wie zum Hochladen. So kann niemand sonst deine Daten sehen. Code vergessen? Frag Herrn Putz.": "You can only see your progress with your personal code, the same one you use for uploading. This way nobody else can see your data. Forgot your code? Ask Mr Putz."
 });
 function F(o, k){ return LANG === "en" && o.en && o.en[k] != null ? o.en[k] : o[k]; }
@@ -693,7 +726,7 @@ const ZEITRAUM_EN = {"DP3ET":"11 January – 12 February 2027","1TPSTU":"25 Janu
 const ZEITRAUM = {"DP3ET":"11. Januar – 12. Februar 2027","1TPSTU":"25. Januar – 19. Februar 2027","2TPSTU":"25. Januar – 19. Februar 2027","3TPSTU":"22. März – 16. April 2027", "3TPST":"22. März – 16. April 2027"};
 function renderMine(){
   const s = data.students.find(x => x.id === $("who").value), box = $("mine");
-  if (!s){ box.innerHTML = '<div class="empty">' + tr("Gib oben deinen persönlichen Code ein. Dann siehst du, welche Punkte schon erledigt sind und was noch fehlt.") + '</div>'; return; }
+  if (!s){ box.innerHTML = '<div class="empty">' + tr(canWrite ? "Wähle oben einen Schüler, um seinen Stand zu sehen." : "Gib oben deinen persönlichen Code ein. Dann siehst du, welche Punkte schon erledigt sind und was noch fehlt.") + '</div>'; return; }
   const items = itemsFor(s);
   const done = items.filter(i => st(s,i.id) === 2).length, pct = Math.round(100*done/items.length);
   const zr = s.zeitraum || ZEITRAUM[(s.klasse||"").toUpperCase()] || "–";
@@ -903,7 +936,7 @@ $("save").addEventListener("click", doSave);
 $("saveTop").addEventListener("click", doSave);
 
 function showTeacher(folderUrl, ficheUrl){
-  $("authBar").hidden = false;
+  $("authBar").hidden = false; renderKeyBox();
   $("standFold").open = true;
   if (ficheUrl){ $("ficheLink").href = ficheUrl; $("ficheLink").hidden = false; } canWrite = true; $("teacher").hidden = false; $("loginBox").hidden = true; renderMatrix();
   if (folderUrl){ $("folderLink").href = folderUrl; $("folderLink").hidden = false; } }
@@ -1029,7 +1062,9 @@ $("ficheForm").addEventListener("submit", async e => {
   d.matricule = d.matricule.replace(/\s+/g, ""); d.iban = d.iban.replace(/\s+/g, "").toUpperCase(); d.bic = d.bic.replace(/\s+/g, "").toUpperCase();
   $("fBtn").disabled = true; msg.textContent = tr("Sende …");
   try {
-    const res = await api({action: "fiche", name: s.name, scode: $("fCode").value.trim(), data: d});
+    const pub = await getPub().catch(() => null);
+    const res = pub ? await api({action: "fiche", name: s.name, scode: $("fCode").value.trim(), enc: b64(await seal(enc8.encode(JSON.stringify(d))))})
+      : await api({action: "fiche", name: s.name, scode: $("fCode").value.trim(), data: d});
     let saved = !!(res && res.ok === true);
     if (!saved && !(res && res.error)){ await reloadData(); const t = data.students.find(x => x.name === s.name); saved = !!(t && st(t, "fiche") >= 1); }
     if (saved){
@@ -1300,6 +1335,154 @@ function renderUpTypes(){
   t.innerHTML = '<option value="">' + tr("– bitte wählen –") + '</option>' + upChoices(s).map(c => `<option value="${esc(c.col)}" data-label="${esc(c.label)}">${esc(c.label)}</option>`).join("");
 }
 $("upName").addEventListener("change", renderUpTypes);
+// ---------- Verschlüsselung (Stufe B) ----------
+// Umschlag: "LTE1" | Länge des eingepackten Schlüssels (2 Byte) | AES-Schlüssel mit RSA-OAEP eingepackt | IV (12) | AES-GCM-Geheimtext
+const enc8 = new TextEncoder(), dec8 = new TextDecoder();
+function b64(u8){ let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s){ const bin = atob(s), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; }
+const RSA = {name: "RSA-OAEP", hash: "SHA-256"};
+let PUB = null; // {key, fp}
+async function getPub(){
+  if (PUB) return PUB;
+  const res = await api({action: "pubkey"});
+  if (!res || !res.pub) return null;
+  PUB = {key: await crypto.subtle.importKey("spki", unb64(res.pub), RSA, false, ["encrypt"]), fp: res.fp};
+  document.querySelectorAll(".encnote").forEach(n => n.hidden = false);
+  return PUB;
+}
+async function seal(bytes){
+  const pub = await getPub(); if (!pub) throw new Error("kein Schlüssel");
+  const k = await crypto.subtle.generateKey({name: "AES-GCM", length: 256}, true, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, k, bytes));
+  const wrapped = new Uint8Array(await crypto.subtle.encrypt(RSA, pub.key, await crypto.subtle.exportKey("raw", k)));
+  const out = new Uint8Array(6 + wrapped.length + 12 + ct.length);
+  out.set(enc8.encode("LTE1")); out[4] = wrapped.length >> 8; out[5] = wrapped.length & 255;
+  out.set(wrapped, 6); out.set(iv, 6 + wrapped.length); out.set(ct, 18 + wrapped.length);
+  return out;
+}
+async function unseal(priv, u8){
+  if (dec8.decode(u8.subarray(0, 4)) !== "LTE1") throw new Error("Format");
+  const n = (u8[4] << 8) | u8[5];
+  const raw = await crypto.subtle.decrypt(RSA, priv, u8.subarray(6, 6 + n));
+  const k = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+  return new Uint8Array(await crypto.subtle.decrypt({name: "AES-GCM", iv: u8.subarray(6 + n, 18 + n)}, k, u8.subarray(18 + n)));
+}
+// Privater Schlüssel, eingepackt mit Passphrase bzw. Wiederherstellungscode (PBKDF2 + AES-GCM)
+const KDF_ITER = 600000;
+async function kdf(secret, salt, iter){
+  const base = await crypto.subtle.importKey("raw", enc8.encode(secret), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: iter, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]);
+}
+async function wrapSecret(secret, bytes){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await kdf(secret, salt, KDF_ITER), bytes));
+  return JSON.stringify({v: 1, it: KDF_ITER, salt: b64(salt), iv: b64(iv), ct: b64(ct)});
+}
+async function unwrapSecret(secret, json){
+  const w = JSON.parse(json);
+  return new Uint8Array(await crypto.subtle.decrypt({name: "AES-GCM", iv: unb64(w.iv)}, await kdf(secret, unb64(w.salt), w.it), unb64(w.ct)));
+}
+const normRec = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+async function fingerprint(spki){ const h = new Uint8Array(await crypto.subtle.digest("SHA-256", spki)); return [...h.slice(0, 8)].map(x => x.toString(16).padStart(2, "0")).join("").match(/.{4}/g).join(" "); }
+
+async function renderKeyBox(){
+  try {
+    const res = await api({action: "pubkey"});
+    $("keySetup").hidden = !!res.pub; $("keyUse").hidden = !res.pub;
+    if (res.pub) $("keyFp").textContent = res.fp;
+  } catch(e){}
+}
+let keyBackup = null;
+$("keyForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("keyMsg"), p1 = $("kp1").value, p2 = $("kp2").value;
+  if (p1.length < 12){ msg.textContent = "Die Passphrase braucht mindestens 12 Zeichen."; return; }
+  if (p1 !== p2){ msg.textContent = "Die beiden Passphrasen sind nicht gleich."; return; }
+  $("keyBtn").disabled = true; msg.textContent = "Erzeuge Schlüssel …";
+  try {
+    const kp = await crypto.subtle.generateKey({...RSA, modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1])}, true, ["encrypt", "decrypt"]);
+    const spki = new Uint8Array(await crypto.subtle.exportKey("spki", kp.publicKey));
+    const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", kp.privateKey));
+    const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", rnd = crypto.getRandomValues(new Uint8Array(24));
+    const rec = [...rnd].map(x => A[x % 32]).join("").match(/.{4}/g).join("-");
+    const fp = await fingerprint(spki);
+    const body = {action: "schluessel_speichern", code: code(), pub: b64(spki), fp, pass: await wrapSecret(p1, pkcs8), rec: await wrapSecret(normRec(rec), pkcs8)};
+    const res = await api(body);
+    if (!res.ok){ msg.textContent = res.error === "schon_da" ? "Es gibt schon einen Schlüssel." : "Hat nicht geklappt: " + (res.message || res.error); return; }
+    keyBackup = {erstellt: new Date().toISOString(), fp, pub: body.pub, pass: body.pass, rec: body.rec};
+    $("kp1").value = ""; $("kp2").value = ""; msg.textContent = "";
+    $("recCode").textContent = rec; $("keyDone").hidden = false; $("keySetup").hidden = true;
+    PUB = null; await renderKeyBox();
+  } catch(err){ msg.textContent = "Fehler: " + err.message; }
+  finally { $("keyBtn").disabled = false; }
+});
+$("keyFile").addEventListener("click", () => {
+  if (!keyBackup) return;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(keyBackup, null, 1)], {type: "application/json"}));
+  a.download = "Erasmus-Schluessel_" + keyBackup.fp.replace(/ /g, "") + ".json"; document.body.appendChild(a); a.click(); a.remove();
+});
+function loadZip(){
+  return window.JSZip ? Promise.resolve(window.JSZip) : new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    sc.onload = () => res(window.JSZip); sc.onerror = rej; document.head.appendChild(sc);
+  });
+}
+async function privateKey(secret){
+  const k = await api({action: "schluessel", code: code()});
+  if (!k.ok || !k.pass) throw new Error("Kein Schlüssel auf dem Server.");
+  let pkcs8 = null;
+  try { pkcs8 = await unwrapSecret(secret, k.pass); } catch(e){}
+  if (!pkcs8){ try { pkcs8 = await unwrapSecret(normRec(secret), k.rec); } catch(e){} }
+  if (!pkcs8) throw new Error("Passphrase bzw. Wiederherstellungscode stimmt nicht.");
+  return crypto.subtle.importKey("pkcs8", pkcs8, RSA, false, ["decrypt"]);
+}
+$("decForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("decMsg"), secret = $("decPass").value;
+  if (!secret){ msg.textContent = "Bitte Passphrase eingeben."; return; }
+  $("decBtn").disabled = true; msg.textContent = "Prüfe Passphrase …";
+  try {
+    const [priv, JSZip, XLSX] = await Promise.all([privateKey(secret), loadZip(), loadXLSX()]);
+    $("decPass").value = "";
+    const zip = new JSZip(), warn = [];
+    // Fiches
+    msg.textContent = "Fiches …";
+    const fr = await api({action: "fiches_holen", code: code()});
+    if (!fr.ok) throw new Error(fr.error);
+    const label = k => { const l = document.querySelector('label[for="f_' + k + '"]'); return l ? l.childNodes[0].textContent.trim() : k; };
+    const rows = [];
+    for (const f of fr.fiches){
+      try { const d = JSON.parse(dec8.decode(await unseal(priv, unb64(f.enc)))); const row = {"Eingang": f.eingang.slice(0, 16).replace("T", " "), "Name (Liste)": f.name}; Object.keys(d).forEach(k => row[label(k)] = d[k]); rows.push(row); }
+      catch(err){ warn.push("Fiche " + f.name + " nicht lesbar"); }
+    }
+    if (rows.length){ const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Fiches"); zip.file("Fiches_donnees.xlsx", XLSX.write(wb, {bookType: "xlsx", type: "array"})); }
+    // Dateien
+    const lr = await api({action: "abgaben_liste", code: code()});
+    if (!lr.ok) throw new Error(lr.error);
+    let n = 0;
+    for (const f of lr.dateien){
+      n++; msg.textContent = "Dateien " + n + " / " + lr.dateien.length + " …";
+      try {
+        const r = await api({action: "abgabe_holen", code: code(), id: f.id});
+        if (!r.ok) throw new Error(r.error);
+        zip.file(f.ordner.replace(/[\\/:*?"<>|]/g, "_") + "/" + f.name.replace(/\.enc$/, "").replace(/[\\/:*?"<>|]/g, "_"), await unseal(priv, unb64(r.data)));
+      } catch(err){ warn.push(f.name + " nicht lesbar"); }
+    }
+    if (!rows.length && !lr.dateien.length){ msg.textContent = "Noch keine verschlüsselten Abgaben." + (lr.klartext || fr.klartext ? " Ältere unverschlüsselte: " + lr.klartext + " Dateien, " + fr.klartext + " Fiches (direkt in Drive bzw. der Tabelle)." : ""); return; }
+    const blob = await zip.generateAsync({type: "blob"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "Erasmus-Abgaben_" + new Date().toISOString().slice(0, 10) + ".zip"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    msg.textContent = "Fertig: " + rows.length + " Fiches, " + (lr.dateien.length - warn.filter(w => !w.startsWith("Fiche")).length) + " Dateien."
+      + (warn.length ? " Nicht lesbar: " + warn.join("; ") + "." : "")
+      + (lr.klartext || fr.klartext ? " Ältere unverschlüsselte (nicht in der ZIP): " + lr.klartext + " Dateien, " + fr.klartext + " Fiches." : "");
+  } catch(err){ msg.textContent = err.message; }
+  finally { $("decBtn").disabled = false; }
+});
+
 $("upForm").addEventListener("submit", async e => {
   e.preventDefault();
   const msg = $("upMsg"), f = $("upFile").files[0], s = data.students.find(x => x.id === $("upName").value);
@@ -1309,15 +1492,17 @@ $("upForm").addEventListener("submit", async e => {
   if (!/\.(pdf|docx?|jpe?g|png|heic)$/i.test(f.name)){ msg.textContent = tr("Bitte nur PDF, Word oder Foto (JPG, PNG, HEIC)."); return; }
   $("upBtn").disabled = true; msg.textContent = tr("Lade hoch …");
   try {
-    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
+    const pub = await getPub().catch(() => null);
+    const b64data = pub ? b64(await seal(new Uint8Array(await f.arrayBuffer())))
+      : await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
     const typ = opt.value || "Sonstiges";
-    const res = await api({action: "upload", name: s.name, typ, col: opt.value, filename: f.name, mime: f.type, data: b64, scode: $("upCode").value.trim()});
+    const res = await api({action: "upload", name: s.name, typ, col: opt.value, filename: f.name, mime: f.type, data: b64data, enc: !!pub, scode: $("upCode").value.trim()});
     if (res && res.ok === true){
       msg.textContent = tr("Danke! Angekommen:") + " " + opt.dataset.label.replace(" · " + tr("erledigt"),"");
       $("upFile").value = "";
       await reloadData();
     } else {
-      msg.textContent = !(res && res.error) ? tr("Unklare Antwort vom Server:") + " " + rawInfo(res) : res.error === "drive" || res.error === "server" ? tr("Fehler im Skript:") + " " + (res.message || res.error) : tr(({scode: "Der Code passt nicht zu deinem Namen.", gesperrt: LOCKED, type: "Dieser Dateityp geht nicht. Bitte PDF, Word oder Foto.", size: "Die Datei ist zu groß (höchstens 15 MB).", name: "Dein Name wurde nicht gefunden. Sprich mit Herrn Putz."})[res.error] || "Das Hochladen geht gerade nicht. Versuche es später noch einmal oder schick die Datei per Mail.");
+      msg.textContent = !(res && res.error) ? tr("Unklare Antwort vom Server:") + " " + rawInfo(res) : res.error === "drive" || res.error === "server" ? tr("Fehler im Skript:") + " " + (res.message || res.error) : tr(({scode: "Der Code passt nicht zu deinem Namen.", gesperrt: LOCKED, unverschluesselt: "Bitte lade die Seite neu und versuche es noch einmal.", type: "Dieser Dateityp geht nicht. Bitte PDF, Word oder Foto.", size: "Die Datei ist zu groß (höchstens 15 MB).", name: "Dein Name wurde nicht gefunden. Sprich mit Herrn Putz."})[res.error] || "Das Hochladen geht gerade nicht. Versuche es später noch einmal oder schick die Datei per Mail.");
     }
   } catch(err){ msg.textContent = tr("Keine Verbindung. Versuche es noch einmal."); }
   finally { $("upBtn").disabled = false; }
@@ -1368,6 +1553,7 @@ document.querySelectorAll(".langsw button").forEach(b => b.addEventListener("cli
   if (!API_URL){ $("mine").innerHTML = '<div class="empty">Der Stand ist noch nicht freigeschaltet. Schau bald wieder vorbei.</div>'; $("loginBox").hidden = true; return; }
   let failed = false;
   try { await loadData(); } catch(e){ failed = true; }
+  getPub().catch(() => {});
   if (code()){
     try { const res = await api({action: "check", code: code()}); if (res.ok) showTeacher(res.folderUrl, res.ficheUrl); } catch(e){}
   }

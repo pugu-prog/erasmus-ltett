@@ -26,6 +26,17 @@
  *     Erst setzen, wenn die neue Webseite online ist (die alte Seite braucht den GET noch).
  *   - Zu viele falsche Codes → kurze Sperre (siehe SPERRE unten).
  *
+ * Verschlüsselung (Stufe B):
+ *   - Der Browser des Schülers verschlüsselt Fiche und Dateien (AES-GCM, Schlüssel mit RSA-OAEP eingepackt).
+ *     Google speichert nur Geheimtext: Dateien enden auf .enc, Fiches stehen im Blatt „Verschlüsselte Fiches“.
+ *   - Den Schlüssel richtet Guy einmal in der Lehreransicht ein. Gespeichert werden hier nur der öffentliche
+ *     Schlüssel und der private Schlüssel, eingepackt mit Passphrase bzw. Wiederherstellungscode
+ *     (Skripteigenschaften SCHLUESSEL_PUB, SCHLUESSEL_FP, SCHLUESSEL_PASS, SCHLUESSEL_REC).
+ *     Neuen Schlüssel einrichten: diese vier Eigenschaften löschen (alte Abgaben sind dann nicht mehr lesbar!).
+ *   - Skripteigenschaft NUR_VERSCHLUESSELT = 1  →  unverschlüsselte Fiches/Dateien werden abgelehnt.
+ *     Erst setzen, wenn die neue Webseite online ist.
+ *   - Mit dem Lehrer-Code bekommt man nur Geheimtext; lesen kann ihn nur, wer die Passphrase kennt.
+ *
  * Ändern (POST) geht nur mit dem Lehrer-Code bzw. für die eigenen Abgaben mit dem Schüler-Code.
  * Erstes Blatt der Tabelle = Liste. Zeile 1 = Spaltenköpfe. Zeilen, deren Name mit # beginnt, werden ignoriert.
  */
@@ -122,6 +133,8 @@ function statusAbgleichen_() {
   var done = {};
   var fs = findFicheSheet_(ss);
   if (fs && fs.getLastRow() > 1) fs.getRange(2, 2, fs.getLastRow() - 1, 1).getValues().forEach(function (r) { if (r[0]) done[String(r[0]).trim().toLowerCase()] = true; });
+  var es = ss.getSheetByName(ENC_FICHES);
+  if (es && es.getLastRow() > 1) es.getRange(2, 2, es.getLastRow() - 1, 1).getValues().forEach(function (r) { if (r[0]) done[String(r[0]).trim().toLowerCase()] = true; });
   var wunsch = {};
   var vs = ss.getSheetByName('Betriebsvorschläge');
   if (vs && vs.getLastRow() > 1) vs.getRange(2, 2, vs.getLastRow() - 1, 5).getValues().forEach(function (r) {
@@ -159,12 +172,18 @@ function handlePost_(e) {
   try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad_request' }); }
 
   if (req.action === 'mein_stand') return meinStand_(req);
+  if (req.action === 'pubkey') return json_({ ok: true, pub: prop_('SCHLUESSEL_PUB'), fp: prop_('SCHLUESSEL_FP') });
   if (req.action === 'upload') return upload_(req);
   if (req.action === 'fiche') return saveFiche_(req);
   if (req.action === 'wunsch') return saveWunsch_(req);
 
   var lo = lehrerOk_(req);
   if (lo !== 'ok') return json_({ ok: false, error: lo });
+  if (req.action === 'schluessel') return schluessel_();
+  if (req.action === 'schluessel_speichern') return schluesselSpeichern_(req);
+  if (req.action === 'abgaben_liste') return abgabenListe_();
+  if (req.action === 'abgabe_holen') return abgabeHolen_(req);
+  if (req.action === 'fiches_holen') return fichesHolen_();
   if (req.action === 'liste') {
     try { statusAbgleichen_(); } catch (err) {}
     return json_({ ok: true, data: readAll_() });
@@ -261,12 +280,16 @@ function upload_(req) {
   var so = schuelerOk_(name, req.scode);
   if (so !== 'ok') return json_({ ok: false, error: so });
 
+  var enc = req.enc === true;
+  if (!enc && nurVerschluesselt_()) return json_({ ok: false, error: 'unverschluesselt' });
   var bytes = Utilities.base64Decode(req.data);
-  if (bytes.length > MAX_BYTES) return json_({ ok: false, error: 'size' });
+  if (bytes.length > MAX_BYTES + (enc ? 4096 : 0)) return json_({ ok: false, error: 'size' });
 
   var ext = filename.replace(/^.*\./, '').toLowerCase();
   var stamp = Utilities.formatDate(new Date(), 'Europe/Luxembourg', 'yyyy-MM-dd HH-mm');
-  var blob = Utilities.newBlob(bytes, req.mime || 'application/octet-stream', typ + ' - ' + name + ' - ' + stamp + '.' + ext);
+  var blob = enc
+    ? Utilities.newBlob(bytes, 'application/octet-stream', typ + ' - ' + name + ' - ' + stamp + '.' + ext + '.enc')
+    : Utilities.newBlob(bytes, req.mime || 'application/octet-stream', typ + ' - ' + name + ' - ' + stamp + '.' + ext);
   var file;
   try { file = studentFolder_(name).createFile(blob); }
   catch (err) { return json_({ ok: false, error: 'drive', message: String(err && err.message || err) }); }
@@ -370,6 +393,9 @@ function saveFiche_(req) {
   var so = schuelerOk_(name, req.scode);
   if (so !== 'ok') return json_({ ok: false, error: so });
 
+  if (req.enc) return saveFicheEnc_(req, name, sh, row, headers);
+  if (nurVerschluesselt_()) return json_({ ok: false, error: 'unverschluesselt' });
+
   var d = req.data || {};
   var OPTIONAL = { tel_fixe: true };
   var missing = FICHE_FELDER.filter(function (f) { return !OPTIONAL[f[0]] && !String(d[f[0]] || '').trim(); }).map(function (f) { return f[1]; });
@@ -455,4 +481,94 @@ function codesPruefen() {
   });
   Logger.log(doppelt.length ? 'Doppelte Codes: ' + doppelt.join('; ') : 'Alle Codes sind eindeutig.');
   return doppelt;
+}
+
+// ---------- Verschlüsselung (Stufe B) ----------
+var ENC_FICHES = 'Verschlüsselte Fiches';
+var B64 = /^[A-Za-z0-9+\/]+=*$/;
+
+function prop_(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
+function nurVerschluesselt_() { return String(prop_('NUR_VERSCHLUESSELT')).trim() === '1'; }
+
+function saveFicheEnc_(req, name, sh, row, headers) {
+  var blob = String(req.enc || '');
+  if (!prop_('SCHLUESSEL_PUB')) return json_({ ok: false, error: 'kein_schluessel' });
+  if (blob.length < 500 || blob.length > 40000 || !B64.test(blob)) return json_({ ok: false, error: 'bad_request' });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var es = ss.getSheetByName(ENC_FICHES);
+    if (!es) {
+      es = ss.insertSheet(ENC_FICHES, ss.getSheets().length);
+      es.getRange(1, 1, 1, 3).setValues([['Eingang', 'Name (Liste)', 'Fiche (verschlüsselt, nur mit Passphrase lesbar)']]).setFontWeight('bold');
+      es.setFrozenRows(1);
+    }
+    var line = [new Date(), name, "'" + blob];
+    var names = es.getRange(1, 2, Math.max(es.getLastRow(), 1), 1).getValues();
+    var r = -1;
+    for (var j = 1; j < names.length; j++) if (String(names[j][0]).trim().toLowerCase() === name.toLowerCase()) { r = j + 1; break; }
+    if (r < 0) es.appendRow(line); else es.getRange(r, 1, 1, 3).setValues([line]);
+    var k = headers.indexOf('Fiche Donnée');
+    if (k >= 0) sh.getRange(row, k + 1).setValue('x'); // Pflichtfelder hat der Browser vor dem Verschlüsseln geprüft
+  } finally { lock.releaseLock(); }
+  return json_({ ok: true });
+}
+
+function schluessel_() {
+  return json_({ ok: true, pub: prop_('SCHLUESSEL_PUB'), fp: prop_('SCHLUESSEL_FP'), pass: prop_('SCHLUESSEL_PASS'), rec: prop_('SCHLUESSEL_REC') });
+}
+
+/** Nur einmal möglich: ein vorhandener Schlüssel wird nie überschrieben (sonst wären alte Abgaben verloren). */
+function schluesselSpeichern_(req) {
+  if (prop_('SCHLUESSEL_PUB')) return json_({ ok: false, error: 'schon_da' });
+  var f = { SCHLUESSEL_PUB: req.pub, SCHLUESSEL_FP: req.fp, SCHLUESSEL_PASS: req.pass, SCHLUESSEL_REC: req.rec };
+  for (var k in f) {
+    var v = String(f[k] || '');
+    if (!v || v.length > 8500) return json_({ ok: false, error: 'bad_request', message: k });
+    f[k] = v;
+  }
+  PropertiesService.getScriptProperties().setProperties(f);
+  return json_({ ok: true, fp: f.SCHLUESSEL_FP });
+}
+
+/** Liste der verschlüsselten Abgaben (ein Unterordner pro Schüler). Unverschlüsselte Dateien werden nur gezählt. */
+function abgabenListe_() {
+  var out = [], klartext = 0;
+  var folders = rootFolder_().getFolders();
+  while (folders.hasNext()) {
+    var fo = folders.next(), files = fo.getFiles();
+    while (files.hasNext()) {
+      var f = files.next();
+      if (/\.enc$/.test(f.getName())) out.push({ id: f.getId(), ordner: fo.getName(), name: f.getName(), size: f.getSize(), datum: f.getDateCreated().toISOString() });
+      else klartext++;
+    }
+  }
+  return json_({ ok: true, dateien: out, klartext: klartext });
+}
+
+/** Gibt eine verschlüsselte Abgabe als base64 zurück – nur .enc-Dateien aus dem Abgabe-Ordner, nichts anderes aus Drive. */
+function abgabeHolen_(req) {
+  var f;
+  try { f = DriveApp.getFileById(String(req.id || '')); } catch (e) { return json_({ ok: false, error: 'nicht_gefunden' }); }
+  if (!/\.enc$/.test(f.getName())) return json_({ ok: false, error: 'nicht_erlaubt' });
+  var rootId = rootFolder_().getId(), ok = false;
+  var parents = f.getParents();
+  while (parents.hasNext()) {
+    var p = parents.next(), pp = p.getParents();
+    while (pp.hasNext()) if (pp.next().getId() === rootId) ok = true;
+  }
+  if (!ok) return json_({ ok: false, error: 'nicht_erlaubt' });
+  return json_({ ok: true, name: f.getName(), data: Utilities.base64Encode(f.getBlob().getBytes()) });
+}
+
+/** Verschlüsselte Fiches für die Lehreransicht (unverschlüsselte alte Fiches werden nur gezählt). */
+function fichesHolen_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var es = ss.getSheetByName(ENC_FICHES), out = [];
+  if (es && es.getLastRow() > 1) es.getRange(2, 1, es.getLastRow() - 1, 3).getValues().forEach(function (r) {
+    if (r[1] && r[2]) out.push({ eingang: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), name: String(r[1]), enc: String(r[2]).replace(/^'/, '') });
+  });
+  var fs = findFicheSheet_(ss);
+  return json_({ ok: true, fiches: out, klartext: fs ? Math.max(fs.getLastRow() - 1, 0) : 0 });
 }
