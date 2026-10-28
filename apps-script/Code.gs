@@ -19,7 +19,14 @@
  *   - Nach einer Änderung am Skript: Bereitstellen › Bereitstellungen verwalten › Bearbeiten (Stift)
  *     › Version: Neue Version › Bereitstellen. Die URL bleibt gleich. Beim ersten Mal Drive-Zugriff erlauben.
  *
- * Die Schüler lesen nur (GET). Ändern (POST) geht nur mit dem Lehrer-Code.
+ * Datenschutz (Stufe A, 28.10.2026):
+ *   - Schüler sehen nur ihren eigenen Stand: Aktion „mein_stand“ mit dem persönlichen Code.
+ *   - Die ganze Liste gibt es nur mit dem Lehrer-Code (Aktion „liste“, „save“).
+ *   - Skripteigenschaft STAND_PRIVAT = 1  →  der offene Abruf (GET) gibt keine Schülerdaten mehr heraus.
+ *     Erst setzen, wenn die neue Webseite online ist (die alte Seite braucht den GET noch).
+ *   - Zu viele falsche Codes → kurze Sperre (siehe SPERRE unten).
+ *
+ * Ändern (POST) geht nur mit dem Lehrer-Code bzw. für die eigenen Abgaben mit dem Schüler-Code.
  * Erstes Blatt der Tabelle = Liste. Zeile 1 = Spaltenköpfe. Zeilen, deren Name mit # beginnt, werden ignoriert.
  */
 
@@ -40,9 +47,69 @@ function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+function standPrivat_() {
+  return String(PropertiesService.getScriptProperties().getProperty('STAND_PRIVAT') || '').trim() === '1';
+}
+
 function doGet() {
+  if (standPrivat_()) return json_({ privat: true, headers: [], rows: [], updated: new Date().toISOString() });
   try { statusAbgleichen_(); } catch (err) {}
   return json_(readAll_());
+}
+
+// ---------- Sperre bei falschen Codes ----------
+// pro Schüler: 5 Fehlversuche, dann 15 Min. gesperrt; Code ohne Namen (alle zusammen): 30 Fehlversuche / 15 Min.;
+// Lehrer-Code (alle zusammen): 10 Fehlversuche / 15 Min.
+var SPERRE = { schueler: [5, 900], suche: [30, 900], lehrer: [10, 900] };
+
+function sperrKey_(art, wer) { return 'sperre:' + art + ':' + String(wer || '').trim().toLowerCase(); }
+
+function gesperrt_(art, wer) {
+  var n = Number(CacheService.getScriptCache().get(sperrKey_(art, wer)) || 0);
+  return n >= SPERRE[art][0];
+}
+
+function fehlversuch_(art, wer) {
+  var c = CacheService.getScriptCache(), k = sperrKey_(art, wer);
+  c.put(k, String(Number(c.get(k) || 0) + 1), SPERRE[art][1]);
+}
+
+function lehrerOk_(req) {
+  if (gesperrt_('lehrer', '')) return 'gesperrt';
+  var expected = PropertiesService.getScriptProperties().getProperty('LEHRER_CODE');
+  if (expected && String(req.code || '') === expected) return 'ok';
+  fehlversuch_('lehrer', '');
+  return 'code';
+}
+
+/** Prüft Name + persönlichen Code. Gibt 'ok', 'gesperrt' oder 'scode' zurück. */
+function schuelerOk_(name, scode) {
+  if (gesperrt_('schueler', name)) return 'gesperrt';
+  var own = codeOf_(name);
+  if (own && String(scode || '').trim().toUpperCase() === own.toUpperCase()) return 'ok';
+  fehlversuch_('schueler', name);
+  return 'scode';
+}
+
+/** Schüler sieht nur die eigene Zeile. Der Code allein reicht (der Name kommt vom Server). */
+function meinStand_(req) {
+  if (gesperrt_('suche', '')) return json_({ ok: false, error: 'gesperrt' });
+  var scode = String(req.scode || '').trim().toUpperCase();
+  var name = '';
+  if (scode.length >= 6) {
+    var v = codesSheet_().getDataRange().getValues().slice(1)
+      .filter(function (r) { return r[0] && String(r[1]).trim().toUpperCase() === scode; });
+    if (v.length === 1) name = String(v[0][0]).trim();
+  }
+  if (!name || gesperrt_('schueler', name)) {
+    fehlversuch_('suche', '');
+    return json_({ ok: false, error: name ? 'gesperrt' : 'scode' });
+  }
+  try { statusAbgleichen_(); } catch (err) {}
+  var all = readAll_();
+  var row = all.rows.filter(function (r) { return String(r[0]).trim().toLowerCase() === name.toLowerCase(); })[0];
+  if (!row) return json_({ ok: false, error: 'name' });
+  return json_({ ok: true, headers: all.headers, rows: [row], updated: all.updated });
 }
 
 /** Hakt „Fiche Donnée“ ab für alle, deren Fiche im Blatt „Fiche données“ steht,
@@ -91,12 +158,17 @@ function handlePost_(e) {
   var req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'bad_request' }); }
 
+  if (req.action === 'mein_stand') return meinStand_(req);
   if (req.action === 'upload') return upload_(req);
   if (req.action === 'fiche') return saveFiche_(req);
   if (req.action === 'wunsch') return saveWunsch_(req);
 
-  var expected = PropertiesService.getScriptProperties().getProperty('LEHRER_CODE');
-  if (!expected || String(req.code || '') !== expected) return json_({ ok: false, error: 'code' });
+  var lo = lehrerOk_(req);
+  if (lo !== 'ok') return json_({ ok: false, error: lo });
+  if (req.action === 'liste') {
+    try { statusAbgleichen_(); } catch (err) {}
+    return json_({ ok: true, data: readAll_() });
+  }
   if (req.action === 'check') {
     codesErzeugen();
     var url = null;
@@ -186,8 +258,8 @@ function upload_(req) {
     if (String(values[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; }
   }
   if (row < 0) return json_({ ok: false, error: 'name' });
-  var own = codeOf_(name);
-  if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
+  var so = schuelerOk_(name, req.scode);
+  if (so !== 'ok') return json_({ ok: false, error: so });
 
   var bytes = Utilities.base64Decode(req.data);
   if (bytes.length > MAX_BYTES) return json_({ ok: false, error: 'size' });
@@ -242,11 +314,17 @@ function codesErzeugen() {
   var cs = codesSheet_();
   var have = {};
   cs.getDataRange().getValues().slice(1).forEach(function (r) { if (r[0]) have[String(r[0]).trim().toLowerCase()] = true; });
+  var used = {};
+  cs.getDataRange().getValues().slice(1).forEach(function (r) { if (r[1]) used[String(r[1]).trim().toUpperCase()] = true; });
   var neu = [];
   names.forEach(function (n) {
     if (have[n.toLowerCase()]) return;
     var c = '';
-    for (var i = 0; i < 6; i++) c += CODE_ZEICHEN.charAt(Math.floor(Math.random() * CODE_ZEICHEN.length));
+    do { // Codes müssen eindeutig sein, weil „mein_stand“ den Schüler nur am Code erkennt
+      c = '';
+      for (var i = 0; i < 6; i++) c += CODE_ZEICHEN.charAt(Math.floor(Math.random() * CODE_ZEICHEN.length));
+    } while (used[c]);
+    used[c] = true;
     neu.push([n, c]);
   });
   if (neu.length) cs.getRange(cs.getLastRow() + 1, 1, neu.length, 2).setValues(neu);
@@ -289,8 +367,8 @@ function saveFiche_(req) {
     if (String(values[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; }
   }
   if (row < 0) return json_({ ok: false, error: 'name' });
-  var own = codeOf_(name);
-  if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
+  var so = schuelerOk_(name, req.scode);
+  if (so !== 'ok') return json_({ ok: false, error: so });
 
   var d = req.data || {};
   var OPTIONAL = { tel_fixe: true };
@@ -337,8 +415,8 @@ function saveWunsch_(req) {
     if (String(values[i][0]).trim().toLowerCase() === name.toLowerCase()) { row = i + 1; break; }
   }
   if (row < 0) return json_({ ok: false, error: 'name' });
-  var own = codeOf_(name);
-  if (!own || String(req.scode || '').trim().toUpperCase() !== own.toUpperCase()) return json_({ ok: false, error: 'scode' });
+  var so = schuelerOk_(name, req.scode);
+  if (so !== 'ok') return json_({ ok: false, error: so });
   if (land !== 'Portugal') betriebe = [];
   var eigene = (req.eigene || []).slice(0, 10).map(function (e) {
     return { name: String(e.name || '').trim().slice(0, 100), ort: String(e.ort || '').trim().slice(0, 80), kontakt: String(e.kontakt || '').trim().slice(0, 200) };
@@ -365,4 +443,16 @@ function saveWunsch_(req) {
     }
   } finally { lock.releaseLock(); }
   return json_({ ok: true });
+}
+
+/** Im Editor ausführen: meldet doppelte Schüler-Codes (die müssen eindeutig sein, sonst geht „mein_stand“ nicht). */
+function codesPruefen() {
+  var seen = {}, doppelt = [];
+  codesSheet_().getDataRange().getValues().slice(1).forEach(function (r) {
+    var c = String(r[1]).trim().toUpperCase();
+    if (!c) return;
+    if (seen[c]) doppelt.push(seen[c] + ' / ' + r[0]); else seen[c] = String(r[0]);
+  });
+  Logger.log(doppelt.length ? 'Doppelte Codes: ' + doppelt.join('; ') : 'Alle Codes sind eindeutig.');
+  return doppelt;
 }
