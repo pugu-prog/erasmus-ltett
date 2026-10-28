@@ -204,6 +204,8 @@
   .fold #fMsg{padding:0 16px 12px}
   .authbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;padding:8px 16px;background:#eef7dc;border-bottom:2px solid var(--green);color:var(--green-ink);font-size:.9rem}
   .authbar[hidden]{display:none}
+  .incogBtn[aria-pressed="true"]{background:#132339;color:#fff;border-color:#132339}
+  .authbar .incogBtn[aria-pressed="true"]{color:#fff;border-color:#132339}
   .authbar .dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
   .authbar a{color:var(--green-ink);font-weight:700}
   .authbar button{padding:4px 12px;font-size:.85rem;border-color:var(--green-ink);color:var(--green-ink)}
@@ -253,7 +255,7 @@
 </style>
 </head>
 <body>
-<div class="authbar" id="authBar" hidden role="status"><span class="dot" aria-hidden="true"></span><b>Als Lehrer angemeldet</b><span class="sep">·</span><a href="#abhaken" id="authGo">Zur Abhakliste</a><button type="button" id="saveTop" class="primary" disabled>Speichern</button><button type="button" id="logoutTop">Abmelden</button></div>
+<div class="authbar" id="authBar" hidden role="status"><span class="dot" aria-hidden="true"></span><b>Als Lehrer angemeldet</b><span class="sep">·</span><a href="#abhaken" id="authGo">Zur Abhakliste</a><button type="button" id="saveTop" class="primary" disabled>Speichern</button><button type="button" class="incogBtn" aria-pressed="false" title="Namen durch „Schüler 1, 2, 3 …“ ersetzen, z. B. zum Zeigen am Beamer">🕶 Inkognito</button><button type="button" id="logoutTop">Abmelden</button></div>
 
 
 <section>
@@ -332,7 +334,7 @@
         <button type="submit">Anmelden</button>
         <span class="save-msg" id="meMsg" role="status"></span>
       </form>
-      <div class="pick" id="meBar" hidden>Angemeldet als <b id="meName"></b> <button type="button" id="meLogout" class="del">Abmelden</button></div>
+      <div class="pick" id="meBar" hidden>Angemeldet als <b id="meName"></b> <button type="button" class="incogBtn" aria-pressed="false" title="Namen durch „Schüler 1, 2, 3 …“ ersetzen, z. B. zum Zeigen am Beamer">🕶 Inkognito</button> <button type="button" id="meLogout" class="del">Abmelden</button></div>
       <label class="pick" for="who" id="whoBox" hidden>Schüler ansehen
         <select id="who"><option value="">– bitte wählen –</option></select>
       </label>
@@ -638,6 +640,7 @@ Object.assign(I18N, {
   "Dieser Code stimmt nicht. Prüfe ihn oder frag Herrn Putz.": "This code is not correct. Check it or ask Mr Putz.",
   "– erst Code eingeben –": "– enter your code first –",
   "Wähle oben einen Schüler, um seinen Stand zu sehen.": "Choose a student above to see their progress.",
+  "Inkognito": "Incognito", "Inkognito an": "Incognito on",
   "🔒 Wird schon in deinem Browser verschlüsselt. Lesen können es nur die zuständigen Lehrer.": "🔒 Encrypted in your browser before sending. Only the teachers in charge can read it.",
   "Deinen Stand siehst du nur mit deinem persönlichen Code, demselben wie zum Hochladen. So kann niemand sonst deine Daten sehen. Code vergessen? Frag Herrn Putz.": "You can only see your progress with your personal code, the same one you use for uploading. This way nobody else can see your data. Forgot your code? Ask Mr Putz."
 });
@@ -716,7 +719,7 @@ function renderPicker(){
   const sel = $("who"), cur = sel.value;
   sel.innerHTML = '<option value="">' + tr("– bitte wählen –") + '</option>' +
     data.students.slice().sort((a,b)=>a.name.localeCompare(b.name,"de"))
-      .map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
+      .map(s => `<option value="${esc(s.id)}">${esc(nm(s.name))}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
   if (data.students.some(s => s.id === cur)) sel.value = cur;
   else if (data.students.length === 1) sel.value = data.students[0].id;
   $("updated").textContent = "";
@@ -731,7 +734,7 @@ function renderMine(){
   const done = items.filter(i => st(s,i.id) === 2).length, pct = Math.round(100*done/items.length);
   const zr = s.zeitraum || ZEITRAUM[(s.klasse||"").toUpperCase()] || "–";
   let html = `<div class="sheet-head">
-    <div><span>${tr("Schülername")}</span><b>${esc(s.name)}</b></div>
+    <div><span>${tr("Schülername")}</span><b>${esc(nm(s.name))}</b></div>
     <div><span>${tr("Klasse")}</span><b>${esc(s.klasse || "–")}</b></div>
     <div><span>${tr("Betrieb / Ort")}</span><b>${esc(s.betrieb || tr("wird noch festgelegt"))}</b></div>
     <div><span>${tr("Wunschland")}</span><b>${esc(s.land ? s.land + (s.wbetriebe ? " · " + s.wbetriebe : "") + (s.eigene ? " · " + tr("eigener Vorschlag") + ": " + s.eigene : "") : tr("noch nicht eingetragen"))}</b></div>
@@ -754,12 +757,12 @@ function renderMatrix(){
   const cols = matrixCols();
   let h = '<thead><tr><th class="nr num" scope="col">' + tr("Nr.") + '</th><th class="who" scope="col">' + tr("Schüler") + '</th><th scope="col"><span class="rot">' + tr("Wochen") + '</span></th>' + cols.map(i => `<th scope="col" title="${esc(F(i,"t"))}"><span class="rot">${esc(F(i,"t"))}${i.due ? " · " + esc(F(i,"dl")) : ""}</span></th>`).join("") + '<th></th></tr></thead><tbody>';
   filtered().forEach((s, ix) => {
-    h += `<tr class="${removedNames.has(s.id) ? "removing" : ""}"><td class="nr num">${ix + 1}</td><th class="who" scope="row">${esc(s.name)}<small>${esc([s.klasse,s.betrieb].filter(Boolean).join(" · "))}</small>${s.land ? `<small class="wish" title="${esc([s.land, s.wbetriebe, s.eigene].filter(Boolean).join(" · "))}">${tr("Wunsch")}: ${esc(s.land)}${s.wbetriebe ? " · " + esc(s.wbetriebe) : ""}</small>` : ""}</th>`;
+    h += `<tr class="${removedNames.has(s.id) ? "removing" : ""}"><td class="nr num">${ix + 1}</td><th class="who" scope="row">${esc(nm(s.name))}<small>${esc([s.klasse,s.betrieb].filter(Boolean).join(" · "))}</small>${s.land ? `<small class="wish" title="${esc([s.land, s.wbetriebe, s.eigene].filter(Boolean).join(" · "))}">${tr("Wunsch")}: ${esc(s.land)}${s.wbetriebe ? " · " + esc(s.wbetriebe) : ""}</small>` : ""}</th>`;
     const n = weeksOf(s);
-    h += `<td><select class="wk" data-wk="${esc(s.id)}" aria-label="Anzahl Praktikumswochen ${esc(s.name)}">${[3,4,5,6].map(x => `<option${x === n ? " selected" : ""}>${x}</option>`).join("")}</select></td>`;
+    h += `<td><select class="wk" data-wk="${esc(s.id)}" aria-label="Anzahl Praktikumswochen ${esc(nm(s.name))}">${[3,4,5,6].map(x => `<option${x === n ? " selected" : ""}>${x}</option>`).join("")}</select></td>`;
     cols.forEach(i => { const v = st(s,i.id);
       if (i.week && i.week > n){ h += `<td class="na" aria-label="keine Woche ${i.week}">·</td>`; return; }
-      h += `<td><button type="button" class="cell s${v}" data-s="${esc(s.id)}" data-i="${i.id}" aria-label="${esc(s.name)}: ${esc(F(i,"t"))}, ${tr(LABEL[v])}">${GLYPH[v]}</button></td>`; });
+      h += `<td><button type="button" class="cell s${v}" data-s="${esc(s.id)}" data-i="${i.id}" aria-label="${esc(nm(s.name))}: ${esc(F(i,"t"))}, ${tr(LABEL[v])}">${GLYPH[v]}</button></td>`; });
     h += `<td><button type="button" class="del" data-del="${esc(s.id)}">${removedNames.has(s.id) ? tr("Rückgängig") : tr("Entfernen")}</button></td></tr>`;
   });
   t.innerHTML = h + "</tbody>";
@@ -828,13 +831,27 @@ async function reloadData(){ try { await loadData(); renderAll(); renderUpNames(
 function code(){ try { return sessionStorage.getItem("erasmus-code") || ""; } catch(e){ return ""; } }
 function scode(){ try { return sessionStorage.getItem("erasmus-scode") || ""; } catch(e){ return ""; } }
 function forgetMe(){ try { sessionStorage.removeItem("erasmus-scode"); } catch(e){} }
+// ---------- Inkognito: Namen durch „Schüler 1, 2, 3 …“ ersetzen (zum Zeigen am Beamer) ----------
+let INCOG = false; try { INCOG = sessionStorage.getItem("erasmus-incog") === "1"; } catch(e){}
+function nm(name){
+  if (!INCOG) return name;
+  const i = data.students.map(s => s.name).sort((a, b) => a.localeCompare(b, "de")).indexOf(name);
+  return tr("Schüler") + " " + (i >= 0 ? i + 1 : "?");
+}
+function syncIncog(){ document.querySelectorAll(".incogBtn").forEach(b => { b.setAttribute("aria-pressed", INCOG); b.textContent = INCOG ? "🕶 " + tr("Inkognito an") : "🕶 " + tr("Inkognito"); }); }
+document.addEventListener("click", e => {
+  if (!e.target.closest(".incogBtn")) return;
+  INCOG = !INCOG; try { sessionStorage.setItem("erasmus-incog", INCOG ? "1" : "0"); } catch(err){}
+  syncIncog(); renderAll(); renderUpNames(); renderFicheNames(); renderWunschNames();
+});
+syncIncog();
 const LOCKED = "Zu viele falsche Versuche. Warte 15 Minuten und versuche es dann noch einmal.";
 
 // ---------- Schüler-Anmeldung mit persönlichem Code ----------
 function renderMe(){
   const s = !canWrite && data.students.length === 1 ? data.students[0] : null;
   $("meForm").hidden = !!s || canWrite; $("meBar").hidden = !s; $("whoBox").hidden = !canWrite;
-  if (s){ $("meName").textContent = s.name; ["upCode","fCode","wCode"].forEach(id => { if (!$(id).value) $(id).value = scode(); }); }
+  if (s){ $("meName").textContent = nm(s.name); ["upCode","fCode","wCode"].forEach(id => { if (!$(id).value) $(id).value = scode(); }); }
 }
 async function studentLogin(c, msgEl){
   c = String(c || "").trim().toUpperCase(); if (!c) return false;
@@ -1041,7 +1058,7 @@ function ficheCheck(){
 function renderFicheNames(){
   const sel = $("fName"), cur = sel.value;
   sel.innerHTML = '<option value="">' + tr(data.students.length ? "– bitte wählen –" : "– erst Code eingeben –") + '</option>' + data.students.slice().sort((a,b)=>a.name.localeCompare(b.name,"de"))
-    .map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
+    .map(s => `<option value="${esc(s.id)}">${esc(nm(s.name))}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
   if (data.students.some(s => s.id === cur)) sel.value = cur;
   else if (data.students.some(s => s.id === $("who").value)) sel.value = $("who").value;
   else if (data.students.length === 1) sel.value = data.students[0].id;
@@ -1101,7 +1118,7 @@ function eigeneValues(){
 function renderWunschNames(){
   const sel = $("wName"), cur = sel.value;
   sel.innerHTML = '<option value="">' + tr(data.students.length ? "– bitte wählen –" : "– erst Code eingeben –") + '</option>' + data.students.slice().sort((a,b)=>a.name.localeCompare(b.name,"de"))
-    .map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
+    .map(s => `<option value="${esc(s.id)}">${esc(nm(s.name))}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
   if (data.students.some(s => s.id === cur)) sel.value = cur;
   else if (data.students.some(s => s.id === $("who").value)) sel.value = $("who").value;
   else if (data.students.length === 1) sel.value = data.students[0].id;
@@ -1216,7 +1233,7 @@ $("fExport").addEventListener("click", async () => {
 function renderOverview(){
   const box = $("overview"); if (!box) return;
   const S = data.students, total = S.length;
-  const chip = s => `<span class="ov-chip">${esc(s.name.split("·")[0].trim())} · ${esc(s.klasse || "")}</span>`;
+  const chip = s => `<span class="ov-chip">${esc(nm(s.name).split("·")[0].trim())} · ${esc(s.klasse || "")}</span>`;
   const byLand = {};
   S.filter(s => s.land).forEach(s => (byLand[s.land] = byLand[s.land] || []).push(s));
   const lands = Object.keys(byLand).sort((a,b) => byLand[b].length - byLand[a].length || a.localeCompare(b,"de"));
@@ -1230,7 +1247,7 @@ function renderOverview(){
   html += `<div class="ov-h">${tr("Alle Schüler auf einen Blick")} · ${rows.length} ${tr("Schüler")}</div><div class="scroll"><table class="ov-table ov-all"><thead><tr><th class="num">${tr("Nr.")}</th>${th("name","Schüler")}${th("klasse","Klasse")}${th("land","Wunschland")}${th("betriebe","Betriebe in Portugal")}${th("eigene","Eigene Vorschläge")}${th("fiche","Fiche")}</tr></thead><tbody>`;
   rows.forEach((s, ix) => {
     const f = st(s, "fiche");
-    html += `<tr class="${s.land ? "" : "ov-none"}"><td class="num">${ix + 1}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.klasse || "")}</td><td>${s.land ? esc(tr(s.land)) : `<span class="small">${tr("noch kein Wunsch")}</span>`}</td><td>${esc(s.wbetriebe || "")}</td><td>${esc(s.eigene || "")}</td><td><span class="chip s${f}">${tr(LABEL[f])}</span></td></tr>`;
+    html += `<tr class="${s.land ? "" : "ov-none"}"><td class="num">${ix + 1}</td><td><b>${esc(nm(s.name))}</b></td><td>${esc(s.klasse || "")}</td><td>${s.land ? esc(tr(s.land)) : `<span class="small">${tr("noch kein Wunsch")}</span>`}</td><td>${esc(s.wbetriebe || "")}</td><td>${esc(s.eigene || "")}</td><td><span class="chip s${f}">${tr(LABEL[f])}</span></td></tr>`;
   });
   html += `</tbody></table></div><div class="ov-h">${tr("Nach Land")}</div><div class="ov-grid">`;
   lands.forEach(l => {
@@ -1322,7 +1339,7 @@ function upChoices(s){
 function renderUpNames(){
   const sel = $("upName"), cur = sel.value;
   sel.innerHTML = '<option value="">' + tr(data.students.length ? "– bitte wählen –" : "– erst Code eingeben –") + '</option>' + data.students.slice().sort((a,b)=>a.name.localeCompare(b.name,"de"))
-    .map(s => `<option value="${esc(s.id)}">${esc(s.name)}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
+    .map(s => `<option value="${esc(s.id)}">${esc(nm(s.name))}${s.klasse ? " · " + esc(s.klasse) : ""}</option>`).join("");
   if (data.students.some(s => s.id === cur)) sel.value = cur;
   else if (data.students.some(s => s.id === $("who").value)) sel.value = $("who").value;
   else if (data.students.length === 1) sel.value = data.students[0].id;
