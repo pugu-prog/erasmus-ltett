@@ -641,6 +641,7 @@ Object.assign(I18N, {
   "– erst Code eingeben –": "– enter your code first –",
   "Wähle oben einen Schüler, um seinen Stand zu sehen.": "Choose a student above to see their progress.",
   "Inkognito": "Incognito", "Inkognito an": "Incognito on",
+  "Das sieht aus wie ein Schüler-Code. Schüler geben ihren Code oben bei „Dein persönlicher Code“ ein.": "This looks like a student code. Students enter their code above under “Your personal code”.",
   "🔒 Wird schon in deinem Browser verschlüsselt. Lesen können es nur die zuständigen Lehrer.": "🔒 Encrypted in your browser before sending. Only the teachers in charge can read it.",
   "Deinen Stand siehst du nur mit deinem persönlichen Code, demselben wie zum Hochladen. So kann niemand sonst deine Daten sehen. Code vergessen? Frag Herrn Putz.": "You can only see your progress with your personal code, the same one you use for uploading. This way nobody else can see your data. Forgot your code? Ask Mr Putz."
 });
@@ -845,6 +846,8 @@ document.addEventListener("click", e => {
   syncIncog(); renderAll(); renderUpNames(); renderFicheNames(); renderWunschNames();
 });
 syncIncog();
+// Schüler-Codes tolerant lesen: Leerzeichen (z. B. vom gesperrt gedruckten Zettel), Bindestriche, Kleinbuchstaben
+const normCode = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const LOCKED = "Zu viele falsche Versuche. Warte 15 Minuten und versuche es dann noch einmal.";
 
 // ---------- Schüler-Anmeldung mit persönlichem Code ----------
@@ -854,7 +857,7 @@ function renderMe(){
   if (s){ $("meName").textContent = nm(s.name); ["upCode","fCode","wCode"].forEach(id => { if (!$(id).value) $(id).value = scode(); }); }
 }
 async function studentLogin(c, msgEl){
-  c = String(c || "").trim().toUpperCase(); if (!c) return false;
+  c = normCode(c); if (!c) return false;
   msgEl.textContent = tr("Prüfe …");
   try {
     const res = await api({action: "mein_stand", scode: c});
@@ -963,7 +966,7 @@ $("loginForm").addEventListener("submit", async e => {
   try {
     const res = await api({action: "check", code: $("code").value});
     if (res.ok){ try { sessionStorage.setItem("erasmus-code", $("code").value); } catch(e){} $("loginMsg").textContent = ""; $("code").value = ""; showTeacher(res.folderUrl, res.ficheUrl); await reloadData(); }
-    else $("loginMsg").textContent = res.error === "code" ? tr("Der Code stimmt nicht.") : res.error === "gesperrt" ? tr(LOCKED) : (tr("Fehler im Skript:") + " " + (res.message || res.error));
+    else $("loginMsg").textContent = res.error === "code" ? tr(/^[A-Z2-9]{6}$/.test(normCode($("code").value)) ? "Das sieht aus wie ein Schüler-Code. Schüler geben ihren Code oben bei „Dein persönlicher Code“ ein." : "Der Code stimmt nicht.") : res.error === "gesperrt" ? tr(LOCKED) : (tr("Fehler im Skript:") + " " + (res.message || res.error));
   } catch(err){ $("loginMsg").textContent = tr("Keine Verbindung zur Tabelle.") + " (" + err.message + ")"; }
 });
 function logout(){
@@ -1080,8 +1083,8 @@ $("ficheForm").addEventListener("submit", async e => {
   $("fBtn").disabled = true; msg.textContent = tr("Sende …");
   try {
     const pub = await getPub().catch(() => null);
-    const res = pub ? await api({action: "fiche", name: s.name, scode: $("fCode").value.trim(), enc: b64(await seal(enc8.encode(JSON.stringify(d))))})
-      : await api({action: "fiche", name: s.name, scode: $("fCode").value.trim(), data: d});
+    const res = pub ? await api({action: "fiche", name: s.name, scode: normCode($("fCode").value), enc: b64(await seal(enc8.encode(JSON.stringify(d))))})
+      : await api({action: "fiche", name: s.name, scode: normCode($("fCode").value), data: d});
     let saved = !!(res && res.ok === true);
     if (!saved && !(res && res.error)){ await reloadData(); const t = data.students.find(x => x.name === s.name); saved = !!(t && st(t, "fiche") >= 1); }
     if (saved){
@@ -1150,7 +1153,7 @@ $("wunschForm").addEventListener("submit", async e => {
   if (bad.length){ msg.textContent = tr("Bitte prüfen:") + " " + bad.join(", "); return; }
   $("wBtn").disabled = true; msg.textContent = tr("Sende …");
   try {
-    const res = await api({action: "wunsch", name: s.name, scode: $("wCode").value.trim(), land, betriebe, eigene});
+    const res = await api({action: "wunsch", name: s.name, scode: normCode($("wCode").value), land, betriebe, eigene});
     let saved = !!(res && res.ok === true);
     if (!saved && !(res && res.error)){ await reloadData(); const t = data.students.find(x => x.name === s.name); saved = !!(t && t.land === land); }
     if (saved){
@@ -1513,7 +1516,7 @@ $("upForm").addEventListener("submit", async e => {
     const b64data = pub ? b64(await seal(new Uint8Array(await f.arrayBuffer())))
       : await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
     const typ = opt.value || "Sonstiges";
-    const res = await api({action: "upload", name: s.name, typ, col: opt.value, filename: f.name, mime: f.type, data: b64data, enc: !!pub, scode: $("upCode").value.trim()});
+    const res = await api({action: "upload", name: s.name, typ, col: opt.value, filename: f.name, mime: f.type, data: b64data, enc: !!pub, scode: normCode($("upCode").value)});
     if (res && res.ok === true){
       msg.textContent = tr("Danke! Angekommen:") + " " + opt.dataset.label.replace(" · " + tr("erledigt"),"");
       $("upFile").value = "";
