@@ -10,4 +10,4 @@ Die Schülerdaten liegen nicht in diesem Repository, sondern in der Google-Tabel
 Schüler lesen nur; Lehrer haken mit dem Lehrer-Code ab.
 
 ## Neues Schuljahr
-Neue Tabelle anlegen (gleiche Spalten), Skript einfügen und bereitstellen, die neue Web-App-URL in `index.html` bei `API_URL` eintragen.
+Neue Tabelle anlegen (gleiche Spalten), Skript einfügen und bereitstellen (seit 28.10.2026: Kopie „Erasmus+ Stand 2026-27 (Lehrer)“ ohne Versionsverlauf), die neue Web-App-URL in `index.html` bei `API_URL` eintragen.

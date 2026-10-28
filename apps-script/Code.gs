@@ -572,3 +572,33 @@ function fichesHolen_() {
   var fs = findFicheSheet_(ss);
   return json_({ ok: true, fiches: out, klartext: fs ? Math.max(fs.getLastRow() - 1, 0) : 0 });
 }
+
+// ---------- Umzug in eine Tabellenkopie ohne Versionsverlauf (Stufe C) ----------
+// 1. ALTE Tabelle: uebertragVorbereiten ausführen  →  Blatt „_uebertrag“ mit den Skripteigenschaften (ohne LEHRER_CODE).
+// 2. Datei › Kopie erstellen.  3. In der KOPIE: uebertragUebernehmen ausführen, LEHRER_CODE von Hand eintragen,
+//    dann Bereitstellen › Neue Bereitstellung › Web-App (Ausführen als: Ich, Zugriff: Jeder).
+var UEBERTRAG = '_uebertrag';
+var UEBERTRAG_KEYS = ['STAND_PRIVAT', 'NUR_VERSCHLUESSELT', 'ABGABE_ORDNER', 'SCHLUESSEL_PUB', 'SCHLUESSEL_FP', 'SCHLUESSEL_PASS', 'SCHLUESSEL_REC'];
+
+function uebertragVorbereiten() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(UEBERTRAG) || ss.insertSheet(UEBERTRAG, ss.getSheets().length);
+  sh.clear();
+  var rows = UEBERTRAG_KEYS.map(function (k) { return [k, prop_(k)]; });
+  sh.getRange(1, 1, rows.length, 2).setNumberFormat('@').setValues(rows);
+  var leer = rows.filter(function (r) { return !r[1]; }).map(function (r) { return r[0]; });
+  Logger.log('Blatt „_uebertrag“ angelegt.' + (leer.length ? ' Leer: ' + leer.join(', ') : ' Alle Eigenschaften drin.') + ' Jetzt Datei › Kopie erstellen.');
+}
+
+function uebertragUebernehmen() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(UEBERTRAG);
+  if (!sh) throw new Error('Blatt „_uebertrag“ fehlt. Erst in der alten Tabelle uebertragVorbereiten ausführen, dann kopieren.');
+  var p = {};
+  sh.getDataRange().getValues().forEach(function (r) {
+    if (UEBERTRAG_KEYS.indexOf(String(r[0])) >= 0 && String(r[1])) p[String(r[0])] = String(r[1]);
+  });
+  PropertiesService.getScriptProperties().setProperties(p);
+  ss.deleteSheet(sh);
+  Logger.log('Übernommen: ' + Object.keys(p).join(', ') + '. ' + (prop_('LEHRER_CODE') ? 'LEHRER_CODE ist schon da.' : 'Jetzt noch LEHRER_CODE in den Skripteigenschaften von Hand eintragen.'));
+}
